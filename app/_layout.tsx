@@ -4,9 +4,9 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { MD3DarkTheme, MD3LightTheme, PaperProvider, Portal } from 'react-native-paper';
 
 const paperLightTheme = {
   ...MD3LightTheme,
@@ -46,11 +46,13 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <PaperProvider theme={colorScheme === 'dark' ? paperDarkTheme : paperLightTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        <Portal.Host>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        </Portal.Host>
       </PaperProvider>
     </ThemeProvider>
   );

@@ -4,34 +4,64 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
-import { Button, Switch } from 'react-native-paper';
+import { Button, Snackbar, Switch } from 'react-native-paper';
+
+// Define interfaces for better type safety
+interface TimeSignature {
+  numerator: number;
+  denominator: number;
+}
+
+interface Measure {
+  id: string;
+  timeSignature: TimeSignature;
+  tempo: number;
+}
+
+interface Show {
+  id: string;
+  name: string;
+  measures: Measure[];
+}
+
+interface CondensedMeasureGroup extends Measure {
+  count: number;
+  startIdx: number;
+  ids: string[];
+}
 
 export default function ShowModeScreen() {
   // Show/measure state
-  const [shows, setShows] = useState([
+  const [shows, setShows] = useState<Show[]>([
     { id: '1', name: 'Show 1', measures: [
       { id: '1', timeSignature: { numerator: 4, denominator: 4 }, tempo: 120 },
       { id: '2', timeSignature: { numerator: 3, denominator: 4 }, tempo: 100 },
     ] },
     { id: '2', name: 'Show 2', measures: [] },
   ]);
-  const [selectedShow, setSelectedShow] = useState('1');
+  const [selectedShow, setSelectedShow] = useState<string | null>('1');
   const [showAddMeasure, setShowAddMeasure] = useState(false);
   const [showRename, setShowRename] = useState(false);
   const [showNew, setShowNew] = useState(false);
-  const [renameValue, setRenameValue] = useState('');
-  const [newShowName, setNewShowName] = useState('');
+  const [renameValue, setRenameValue] = useState<string>('');
+  const [newShowName, setNewShowName] = useState<string>('');
   // Add measure popup state
-  const [numMeasures, setNumMeasures] = useState('1');
-  const [tempo, setTempo] = useState('120');
-  const [numerator, setNumerator] = useState('4');
-  const [denominator, setDenominator] = useState('4');
+  const [numMeasures, setNumMeasures] = useState<string>('1');
+  const [tempo, setTempo] = useState<string>('120');
+  const [numerator, setNumerator] = useState<string>('4');
+  const [denominator, setDenominator] = useState<string>('4');
   const [condensedView, setCondensedView] = useState(true);
   // Refs for selecting all text on focus
-  const numMeasuresRef = useRef(null);
-  const tempoRef = useRef(null);
-  const numeratorRef = useRef(null);
-  const denominatorRef = useRef(null);
+  const numMeasuresRef = useRef<TextInput>(null);
+  const tempoRef = useRef<TextInput>(null);
+  const numeratorRef = useRef<TextInput>(null);
+  const denominatorRef = useRef<TextInput>(null);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editShowId, setEditShowId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  // Snackbar state
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState<string>('');
 
   // Load shows from storage on mount
   useEffect(() => {
@@ -40,8 +70,15 @@ export default function ShowModeScreen() {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) setShows(parsed);
-        } catch {}
+          if (Array.isArray(parsed)) setShows(parsed as Show[]);
+          if (parsed.length > 0) {
+            setSelectedShow(parsed[0].id);
+          } else {
+            setSelectedShow(null);
+          }
+        } catch (e) {
+          console.error("Failed to parse shows from storage", e);
+        }
       }
     })();
   }, []);
@@ -57,7 +94,7 @@ export default function ShowModeScreen() {
   // Add measures
   const handleAddMeasures = () => {
     if (!currentShow) return;
-    const newMeasures = [];
+    const newMeasures: Measure[] = [];
     for (let i = 0; i < parseInt(numMeasures || '1', 10); i++) {
       newMeasures.push({
         id: Date.now().toString() + Math.random(),
@@ -65,19 +102,23 @@ export default function ShowModeScreen() {
         tempo: parseInt(tempo, 10),
       });
     }
-    setShows(shows => shows.map(show =>
+    setShows((prevShows) => prevShows.map((show) =>
       show.id === selectedShow
         ? { ...show, measures: [...show.measures, ...newMeasures] }
         : show
     ));
     setShowAddMeasure(false);
+    setNumMeasures('1');
+    setTempo('120');
+    setNumerator('4');
+    setDenominator('4');
   };
 
   // Delete measure
-  const handleDeleteMeasure = (measureId) => {
-    setShows(shows => shows.map(show =>
+  const handleDeleteMeasure = (measureId: string) => {
+    setShows((prevShows) => prevShows.map((show) =>
       show.id === selectedShow
-        ? { ...show, measures: show.measures.filter(m => m.id !== measureId) }
+        ? { ...show, measures: show.measures.filter((m: Measure) => m.id !== measureId) }
         : show
     ));
   };
@@ -85,30 +126,36 @@ export default function ShowModeScreen() {
   // Add new show
   const handleAddShow = () => {
     const id = Date.now().toString() + Math.random();
-    setShows(shows => [...shows, { id, name: newShowName || `Show ${shows.length + 1}`, measures: [] }]);
-    setSelectedShow(id);
-    setShowNew(false);
-    setNewShowName('');
+    const name = `Show ${shows.length + 1}`;
+    setShows((prevShows) => [...prevShows, { id, name, measures: [] }]);
+    setSelectedShow(id as string);
+    // Show snackbar
+    setSnackbarMessage(`${name} has been created!`);
+    setSnackbarVisible(true);
   };
 
   // Delete show
-  const handleDeleteShow = (id) => {
-    setShows(shows => shows.filter(show => show.id !== id));
-    if (selectedShow === id) setSelectedShow(null);
+  const handleDeleteShow = (id: string | null) => {
+    if (!id) return;
+    setShows((prevShows) => prevShows.filter((show) => show.id !== id));
+    if (selectedShow === id) {
+      setSelectedShow(shows.filter(s => s.id !== id)[0]?.id as string | null);
+    }
   };
 
   // Rename show
-  const handleRenameShow = () => {
-    setShows(shows => shows.map(show =>
-      show.id === selectedShow ? { ...show, name: renameValue } : show
+  const handleRenameShow = (id: string | null) => {
+    if (!id) return;
+    setShows((prevShows) => prevShows.map((show) =>
+      show.id === id ? { ...show, name: renameValue } : show
     ));
-    setShowRename(false);
+    setShowEdit(false);
   };
 
   // Helper: group consecutive measures by time signature and tempo
-  function getCondensedMeasures(measures) {
+  function getCondensedMeasures(measures: Measure[]): CondensedMeasureGroup[] {
     if (!measures.length) return [];
-    const groups = [];
+    const groups: CondensedMeasureGroup[] = [];
     let last = measures[0];
     let count = 1;
     let startIdx = 0;
@@ -121,21 +168,21 @@ export default function ShowModeScreen() {
       ) {
         count++;
       } else {
-        groups.push({ ...last, count, startIdx, ids: measures.slice(startIdx, i).map(mm => mm.id) });
+        groups.push({ ...last, count, startIdx, ids: measures.slice(startIdx, i).map((mm: Measure) => mm.id) });
         last = m;
         count = 1;
         startIdx = i;
       }
     }
-    groups.push({ ...last, count, startIdx, ids: measures.slice(startIdx).map(mm => mm.id) });
+    groups.push({ ...last, count, startIdx, ids: measures.slice(startIdx).map((mm: Measure) => mm.id) });
     return groups;
   }
 
   // Delete all measures in a condensed group
-  const handleDeleteCondensedGroup = (ids) => {
-    setShows(shows => shows.map(show =>
+  const handleDeleteCondensedGroup = (ids: string[]) => {
+    setShows((prevShows) => prevShows.map((show) =>
       show.id === selectedShow
-        ? { ...show, measures: show.measures.filter(m => !ids.includes(m.id)) }
+        ? { ...show, measures: show.measures.filter((m: Measure) => !ids.includes(m.id)) }
         : show
     ));
   };
@@ -157,27 +204,29 @@ export default function ShowModeScreen() {
 
       {/* Show Manager Row */}
       <ScrollView horizontal style={[styles.showManagerRow, { flex: 2 }]} contentContainerStyle={{ alignItems: 'center' }}>
-        {shows.map(show => (
-          <TouchableOpacity
-            key={show.id}
-            style={[styles.showChip, selectedShow === show.id && styles.showChipActive]}
-            onPress={() => setSelectedShow(show.id)}
-          >
-            <ThemedText>{show.name}</ThemedText>
-          </TouchableOpacity>
-        ))}
-        <TouchableOpacity style={styles.iconButton} onPress={() => setShowNew(true)}>
+        <TouchableOpacity style={styles.iconButton} onPress={() => {
+          const id = Date.now().toString() + Math.random();
+          const newShowNameGenerated = `Show ${shows.length + 1}`;
+          setShows(shows => [...shows, { id, name: newShowNameGenerated, measures: [] }]);
+          setSelectedShow(id);
+          setSnackbarMessage(`${newShowNameGenerated} has been created!`);
+          setSnackbarVisible(true);
+        }}>
           <IconSymbol name="plus" size={22} color="#fff" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton} onPress={() => setShowRename(true)} disabled={!currentShow}>
-          <IconSymbol name="pencil" size={22} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton} onPress={() => currentShow && handleDeleteShow(currentShow.id)} disabled={!currentShow}>
-          <IconSymbol name="trash" size={22} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
-          <IconSymbol name="square.and.arrow.up" size={22} color="#fff" />
-        </TouchableOpacity>
+        {shows.map(show => (
+          <View key={show.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              style={[styles.showChip, selectedShow === show.id && selectedShow !== null && styles.showChipActive]}
+              onPress={() => setSelectedShow(show.id)}
+            >
+              <ThemedText>{show.name}</ThemedText>
+              <TouchableOpacity style={styles.iconButtonSmall} onPress={(e) => { e.stopPropagation(); setEditShowId(show.id); setRenameValue(show.name); setShowEdit(true); }}>
+                <IconSymbol name="pencil" size={16} color="#fff" />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
+        ))}
       </ScrollView>
 
       {/* Measure Manager Row */}
@@ -234,7 +283,7 @@ export default function ShowModeScreen() {
       </View>
 
       {/* Add Measure Popup */}
-      <Modal visible={showAddMeasure} transparent animationType="fade">
+      <Modal visible={showAddMeasure} transparent animationType="none">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowAddMeasure(false)}>
           <TouchableOpacity style={styles.modalContent} activeOpacity={1} onPress={e => e.stopPropagation()}>
             <ThemedText type="title">Add Measures</ThemedText>
@@ -298,11 +347,12 @@ export default function ShowModeScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Rename Show Popup */}
-      <Modal visible={showRename} transparent animationType="fade">
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowRename(false)}>
+      {/* Edit Show Popup */}
+      <Modal visible={showEdit} transparent animationType="none">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowEdit(false)}>
           <TouchableOpacity style={styles.modalContent} activeOpacity={1} onPress={e => e.stopPropagation()}>
-            <ThemedText type="title">Rename Show</ThemedText>
+            <ThemedText type="title">Edit Show</ThemedText>
+            <ThemedText style={styles.inputLabel}>Show Name</ThemedText>
             <TextInput
               value={renameValue}
               onChangeText={setRenameValue}
@@ -311,35 +361,39 @@ export default function ShowModeScreen() {
               keyboardType="default"
               autoFocus
             />
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
-              <Button onPress={() => setShowRename(false)} mode="text">Cancel</Button>
-              <Button onPress={handleRenameShow} mode="contained">Rename</Button>
+            <Button mode="outlined" style={{ marginTop: 12 }} onPress={() => {/* TODO: Export logic */}}>
+              Export as File
+            </Button>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+              <Button onPress={() => setShowEdit(false)} mode="text">Cancel</Button>
+              <Button onPress={() => { setConfirmDelete(true); setShowEdit(false); }} mode="contained" style={{ backgroundColor: '#e53935' }}>Delete</Button>
+              <Button onPress={() => { handleRenameShow(editShowId); setShowEdit(false); }} mode="contained">Save</Button>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+      {/* Confirm Delete Popup */}
+      <Modal visible={confirmDelete} transparent animationType="none">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setConfirmDelete(false)}>
+          <TouchableOpacity style={styles.modalContent} activeOpacity={1} onPress={e => e.stopPropagation()}>
+            <ThemedText type="title" style={{ color: '#e53935' }}>Delete Show?</ThemedText>
+            <ThemedText>Are you sure you want to delete this show? This cannot be undone.</ThemedText>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+              <Button onPress={() => setConfirmDelete(false)} mode="text">Cancel</Button>
+              <Button onPress={() => { handleDeleteShow(editShowId); setConfirmDelete(false); setShowEdit(false); }} mode="contained" style={{ backgroundColor: '#e53935' }}>Delete</Button>
             </View>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
-      {/* New Show Popup */}
-      <Modal visible={showNew} transparent animationType="fade">
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowNew(false)}>
-          <TouchableOpacity style={styles.modalContent} activeOpacity={1} onPress={e => e.stopPropagation()}>
-            <ThemedText type="title">New Show</ThemedText>
-            <TextInput
-              value={newShowName}
-              onChangeText={setNewShowName}
-              style={styles.input}
-              placeholder="Show name"
-              placeholderTextColor="#888"
-              keyboardType="default"
-              autoFocus
-            />
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
-              <Button onPress={() => setShowNew(false)} mode="text">Cancel</Button>
-              <Button onPress={handleAddShow} mode="contained">Create</Button>
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={Snackbar.DURATION_MEDIUM}
+        wrapperStyle={styles.snackbarWrapper}
+      >
+        {snackbarMessage}
+      </Snackbar>
     </ThemedView>
   );
 }
@@ -393,6 +447,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     marginRight: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   showChipActive: {
     backgroundColor: '#4F8EF7',
@@ -464,5 +521,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 4,
     fontSize: 14,
+  },
+  snackbarWrapper: {
+    position: 'absolute',
+    bottom: 120,
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    zIndex: 1000,
   },
 }); 
