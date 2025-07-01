@@ -178,19 +178,13 @@
 5. Test for timing accuracy and UI responsiveness.
 
 ## **Phase 3: Show Mode Core Functionality**
-1. Build the ShowModeScreen layout:
-   - Add show list (load, rename, delete shows).
-   - Add show editor with measure list and drag-and-drop reordering.
-   - Add the "Add Measure" popup with fields for number of measures, time signature (chevrons), and tempo.
-   - Add remove measure functionality.
-2. Implement show data structure and local persistence (AsyncStorage).
-3. Implement logic to add multiple measures at once with the same settings.
-4. Implement playback logic:
+1. ✅ Build the ShowModeScreen UI, implement local state logic for adding/deleting measures, creating/renaming/deleting shows, switching between shows, and persistence using AsyncStorage, and implement logic to add multiple measures at once.
+2. Implement playback logic:
    - 4-beat count-in (audio and visual).
    - Play through all measures, updating timer and tempo bar as needed.
    - Handle time signature and tempo changes between measures.
-5. Integrate expo-audio for all playback.
-6. Test for timing accuracy, measure transitions, and UI responsiveness.
+3. Integrate expo-audio for all playback.
+4. Test for timing accuracy, measure transitions, and UI responsiveness.
 
 ## **Phase 4: Polish & UX Enhancements**
 1. Refine dark mode UI for modern, minimalist look.

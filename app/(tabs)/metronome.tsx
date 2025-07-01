@@ -52,7 +52,6 @@ export default function MetronomeScreen() {
     }
     
     // Play the first beat immediately when starting
-    console.log('Playing initial hi sound');
     hiPlayer.seekTo(0);
     setTimeout(() => hiPlayer.play(), 1);
     setCurrentBeat(0);
@@ -63,11 +62,9 @@ export default function MetronomeScreen() {
         const nextBeat = (prev + 1) % numerator;
         // Play sound (downbeat = 0)
         if (nextBeat === 0) {
-          console.log('Playing hi sound, beat:', nextBeat);
           hiPlayer.seekTo(0);
           setTimeout(() => hiPlayer.play(), 1);
         } else {
-          console.log('Playing lo sound, beat:', nextBeat);
           loPlayer.seekTo(0);
           setTimeout(() => loPlayer.play(), 1);
         }
