@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Button, IconButton, Text, useTheme } from 'react-native-paper';
-import Slider from '@react-native-community/slider';
 import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
+import Slider from '@react-native-community/slider';
+import { createAudioPlayer, useAudioPlayer } from 'expo-audio';
+import React, { useEffect, useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Button, IconButton, Text, useTheme } from 'react-native-paper';
+import Timer from '../../utils/timer';
 
 const NUMERATOR_MIN = 1;
 const NUMERATOR_MAX = 12;
@@ -11,13 +12,76 @@ const DENOMINATORS = [2, 4, 8, 16];
 const TEMPO_MIN = 40;
 const TEMPO_MAX = 240;
 
+// Helper to play overlapping sound
+async function playOverlappingSound(source: number) {
+  const player = createAudioPlayer(source);
+  await player.play();
+  // Release after playback finishes
+  player.addListener('playbackStatusUpdate', (status: { didJustFinish?: boolean }) => {
+    if (status.didJustFinish) {
+      player.remove();
+    }
+  });
+}
+
 export default function MetronomeScreen() {
   const { colors } = useTheme();
   const [numerator, setNumerator] = useState(4);
   const [denominatorIdx, setDenominatorIdx] = useState(1); // default to 4
   const [tempo, setTempo] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentBeat, setCurrentBeat] = useState(0); // 0-based
   const denominator = DENOMINATORS[denominatorIdx];
+
+  // Timer ref
+  const timerRef = useRef<Timer | null>(null);
+
+  // Audio players
+  const hiPlayer = useAudioPlayer(require('@/assets/sounds/click_hi.wav'));
+  const loPlayer = useAudioPlayer(require('@/assets/sounds/click_lo.wav'));
+
+  // Calculate beat duration in ms
+  const beatDuration = Math.round(60000 / (tempo * (denominator / 4)));
+
+  // Start/stop timer
+  useEffect(() => {
+    if (!isPlaying) {
+      if (timerRef.current) timerRef.current.stop();
+      setCurrentBeat(0);
+      return;
+    }
+    
+    // Play the first beat immediately when starting
+    console.log('Playing initial hi sound');
+    hiPlayer.seekTo(0);
+    setTimeout(() => hiPlayer.play(), 1);
+    setCurrentBeat(0);
+    
+    // Timer callback
+    const onTick = () => {
+      setCurrentBeat(prev => {
+        const nextBeat = (prev + 1) % numerator;
+        // Play sound (downbeat = 0)
+        if (nextBeat === 0) {
+          console.log('Playing hi sound, beat:', nextBeat);
+          hiPlayer.seekTo(0);
+          setTimeout(() => hiPlayer.play(), 1);
+        } else {
+          console.log('Playing lo sound, beat:', nextBeat);
+          loPlayer.seekTo(0);
+          setTimeout(() => loPlayer.play(), 1);
+        }
+        return nextBeat;
+      });
+    };
+    // Start timer
+    timerRef.current = new Timer(onTick, beatDuration, { immediate: false });
+    timerRef.current.start();
+    return () => {
+      timerRef.current?.stop();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying, numerator, denominator, tempo, hiPlayer, loPlayer]);
 
   // Tempo bar segments
   const tempoBar = Array.from({ length: numerator });
@@ -96,8 +160,9 @@ export default function MetronomeScreen() {
             key={i}
             style={{
               ...styles.tempoBarSegment,
-              backgroundColor: colors.surface,
+              backgroundColor: i === currentBeat ? colors.primary : colors.surface,
               borderColor: colors.primary,
+              opacity: i === currentBeat ? 1 : 0.4,
             }}
           />
         ))}
