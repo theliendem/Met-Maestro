@@ -2,9 +2,11 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAudioPlayer } from 'expo-audio';
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { Button, Snackbar, Switch } from 'react-native-paper';
+import Timer from '../../utils/timer';
 
 // Define interfaces for better type safety
 interface TimeSignature {
@@ -62,6 +64,16 @@ export default function ShowModeScreen() {
   // Snackbar state
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>('');
+  // Playback state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isCountIn, setIsCountIn] = useState(false);
+  const [currentMeasureIdx, setCurrentMeasureIdx] = useState<number>(0);
+  const [currentBeat, setCurrentBeat] = useState<number>(0); // 0-based
+  const timerRef = useRef<any>(null);
+
+  // Audio players
+  const hiPlayer = useAudioPlayer(require('@/assets/sounds/click_hi.wav'));
+  const loPlayer = useAudioPlayer(require('@/assets/sounds/click_lo.wav'));
 
   // Load shows from storage on mount
   useEffect(() => {
@@ -187,18 +199,150 @@ export default function ShowModeScreen() {
     ));
   };
 
+  // Helper: Calculate beat duration (ms) for a measure
+  function getBeatDuration(tempo: number, denominator: number) {
+    return Math.round(60000 / (tempo * (denominator / 4)));
+  }
+
+  // Helper: For count-in, always use quarter notes
+  function getCountInBeatDuration(tempo: number) {
+    return Math.round(60000 / tempo);
+  }
+
+  // Start playback (count-in, then show)
+  const handlePlay = () => {
+    if (!currentShow || !currentShow.measures.length) return;
+    setIsPlaying(true);
+    setIsCountIn(true);
+    setCurrentMeasureIdx(0);
+    setCurrentBeat(0);
+    // Start count-in timer
+    const tempo = currentShow.measures[0].tempo;
+    const countInBeatDuration = getCountInBeatDuration(tempo);
+    let countInBeat = 0;
+    timerRef.current?.stop?.();
+    timerRef.current = new Timer(() => {
+      // Play sound (downbeat = 0)
+      if (countInBeat === 0) {
+        hiPlayer.seekTo(0);
+        setTimeout(() => hiPlayer.play(), 1);
+      } else {
+        loPlayer.seekTo(0);
+        setTimeout(() => loPlayer.play(), 1);
+      }
+      setCurrentBeat(countInBeat);
+      countInBeat++;
+      if (countInBeat === 4) {
+        // End count-in, start show playback after last beat is shown
+        timerRef.current?.stop?.();
+        setTimeout(() => {
+          setIsCountIn(false);
+          setCurrentBeat(0);
+          startShowPlayback();
+        }, countInBeatDuration); // Let the last beat display for its full duration
+      }
+    }, countInBeatDuration, { immediate: true });
+    timerRef.current.start();
+  };
+
+  // Start show playback
+  function startShowPlayback() {
+    if (!currentShow || !currentShow.measures.length) return;
+    let measureIdx = 0;
+    let beat = 0;
+    const playMeasure = (idx: number) => {
+      const measure = currentShow.measures[idx];
+      if (!measure) {
+        handleStop();
+        return;
+      }
+      const { numerator, denominator } = measure.timeSignature;
+      const tempo = measure.tempo;
+      const beatDuration = getBeatDuration(tempo, denominator);
+      beat = 0;
+      setCurrentMeasureIdx(idx);
+      setCurrentBeat(0);
+      timerRef.current?.stop?.();
+      timerRef.current = new Timer(() => {
+        // Play sound (downbeat = 0)
+        if (beat === 0) {
+          hiPlayer.seekTo(0);
+          setTimeout(() => hiPlayer.play(), 1);
+        } else {
+          loPlayer.seekTo(0);
+          setTimeout(() => loPlayer.play(), 1);
+        }
+        setCurrentBeat(beat);
+        beat++;
+        if (beat === numerator) {
+          // End of measure, let last beat display for its full duration
+          timerRef.current?.stop?.();
+          setTimeout(() => {
+            if (idx + 1 < currentShow.measures.length) {
+              playMeasure(idx + 1);
+            } else {
+              handleStop();
+            }
+          }, beatDuration);
+        }
+      }, beatDuration, { immediate: true });
+      timerRef.current.start();
+    };
+    playMeasure(0);
+  }
+
+  // Stop playback
+  const handleStop = () => {
+    timerRef.current?.stop?.();
+    setIsPlaying(false);
+    setIsCountIn(false);
+    setCurrentMeasureIdx(0);
+    setCurrentBeat(0);
+  };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      timerRef.current?.stop?.();
+    };
+  }, []);
+
+  // UI: Tempo bar segments
+  let tempoBarSegments = [];
+  if (isCountIn) {
+    tempoBarSegments = Array.from({ length: 4 });
+  } else if (currentShow && currentShow.measures.length > 0) {
+    const measure = currentShow.measures[currentMeasureIdx];
+    tempoBarSegments = Array.from({ length: measure?.timeSignature.numerator || 4 });
+  } else {
+    tempoBarSegments = Array.from({ length: 4 });
+  }
+
   // UI rendering
   return (
     <ThemedView style={styles.container}>
       {/* Tempo Bar & Play Button */}
       <View style={styles.tempoBarRow}>
         <View style={styles.tempoBar}>
-          {[0, 1, 2, 3].map(i => (
-            <View key={i} style={[styles.tempoDot, i === 0 && styles.tempoDotActive]} />
+          {tempoBarSegments.map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.tempoDot,
+                (isCountIn
+                  ? (i === currentBeat && styles.tempoDotCountInActive)
+                  : (i === currentBeat && styles.tempoDotActive)),
+              ]}
+            />
           ))}
         </View>
-        <Button mode="contained" icon="play" style={styles.playButton}>
-          Play
+        <Button
+          mode="contained"
+          icon={isPlaying ? 'stop' : 'play'}
+          style={styles.playButton}
+          onPress={isPlaying ? handleStop : handlePlay}
+        >
+          {isPlaying ? 'Stop' : 'Play'}
         </Button>
       </View>
 
@@ -427,6 +571,10 @@ const styles = StyleSheet.create({
   tempoDotActive: {
     backgroundColor: '#4F8EF7',
     borderColor: '#4F8EF7',
+  },
+  tempoDotCountInActive: {
+    backgroundColor: 'orange',
+    borderColor: 'orange',
   },
   playButton: {
     borderRadius: 24,
