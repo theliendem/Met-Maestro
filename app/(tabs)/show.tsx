@@ -70,6 +70,9 @@ export default function ShowModeScreen() {
   const [currentMeasureIdx, setCurrentMeasureIdx] = useState<number>(0);
   const [currentBeat, setCurrentBeat] = useState<number>(0); // 0-based
   const timerRef = useRef<any>(null);
+  // Refs to track current position during playback without causing re-renders
+  const measureIdxRef = useRef<number>(0);
+  const beatIdxRef   = useRef<number>(0);
 
   // Audio players
   const hiPlayer = useAudioPlayer(require('@/assets/sounds/click_hi.wav'));
@@ -212,6 +215,9 @@ export default function ShowModeScreen() {
   // Start playback (count-in, then show)
   const handlePlay = () => {
     if (!currentShow || !currentShow.measures.length) return;
+    // Always reset refs on play
+    measureIdxRef.current = 0;
+    beatIdxRef.current = 0;
     setIsPlaying(true);
     setIsCountIn(true);
     setCurrentMeasureIdx(0);
@@ -220,84 +226,149 @@ export default function ShowModeScreen() {
     const tempo = currentShow.measures[0].tempo;
     const countInBeatDuration = getCountInBeatDuration(tempo);
     let countInBeat = 0;
-    timerRef.current?.stop?.();
+    // Play the first count-in beat immediately (always hi click)
+    hiPlayer.seekTo(0);
+    setTimeout(() => hiPlayer.play(), 1);
+    if (timerRef.current) {
+      timerRef.current.stop();
+      timerRef.current = null;
+    }
     timerRef.current = new Timer(() => {
-      // Play sound (downbeat = 0)
-      if (countInBeat === 0) {
+      countInBeat++;
+      setCurrentBeat(countInBeat);
+      if (countInBeat < 4) {
+        // Play hi click for every count-in beat
+        hiPlayer.seekTo(0);
+        setTimeout(() => hiPlayer.play(), 1);
+      }
+      if (countInBeat === 4) {
+        setIsCountIn(false);
+        setCurrentBeat(-1);
+        if (timerRef.current) {
+          timerRef.current.stop();
+          timerRef.current = null;
+        }
+        startShowPlayback();
+      }
+    }, countInBeatDuration, { immediate: false });
+    timerRef.current.start();
+  };
+
+  // Start show playback using a single Timer instance that adjusts interval dynamically
+  function startShowPlayback() {
+    if (!currentShow || !currentShow.measures.length) return;
+
+    // Calculate total number of measures at the start
+    const totalMeasures = currentShow.measures.length;
+
+    // Reset refs ONLY at the start of playback
+    measureIdxRef.current = 0;
+    beatIdxRef.current = 0;
+
+    // Helper to get the active measure object
+    const getActiveMeasure = () => {
+      if (!currentShow || measureIdxRef.current >= currentShow.measures.length) return undefined;
+      return currentShow.measures[measureIdxRef.current];
+    };
+
+    // Helper to compute beat duration for current active measure
+    const computeCurrentBeatDuration = () => {
+      const m = getActiveMeasure();
+      return m ? getBeatDuration(m.tempo, m.timeSignature.denominator) : 0;
+    };
+
+    // --- Play first beat immediately ---
+    setCurrentMeasureIdx(0);
+    setCurrentBeat(0);
+    hiPlayer.seekTo(0);
+    setTimeout(() => hiPlayer.play(), 1);
+
+    // Timer callback for every subsequent beat
+    const onTick = () => {
+      // Guard: if timerRef.current is null, exit immediately (prevents infinite loop after stop)
+      if (!timerRef.current) return;
+      // Log current refs before any logic
+      console.log('TICK: measureIdxRef', measureIdxRef.current, 'beatIdxRef', beatIdxRef.current);
+      // If we've reached the end, stop and reset
+      if (measureIdxRef.current >= totalMeasures) {
+        console.log('END: handleStop called (measureIdxRef >= totalMeasures)', measureIdxRef.current, totalMeasures);
+        handleStop();
+        return; // Always return immediately after handleStop
+      }
+      const currMeasure = getActiveMeasure();
+      if (!currMeasure) {
+        console.log('END: handleStop called (no currMeasure)');
+        handleStop();
+        return; // Always return immediately after handleStop
+      }
+      const { numerator } = currMeasure.timeSignature;
+
+      // Advance beat index
+      beatIdxRef.current += 1;
+
+      // If end of measure, move to next measure
+      if (beatIdxRef.current >= numerator) {
+        beatIdxRef.current = 0;
+        measureIdxRef.current += 1;
+        // If we've reached the end, stop and reset
+        if (measureIdxRef.current >= totalMeasures) {
+          console.log('END: handleStop called (measureIdxRef >= totalMeasures) after measure increment', measureIdxRef.current, totalMeasures);
+          handleStop();
+          return; // Always return immediately after handleStop
+        }
+      }
+
+      const newMeasure = getActiveMeasure();
+      if (!newMeasure) {
+        console.log('END: handleStop called (no newMeasure)');
+        handleStop();
+        return; // Always return immediately after handleStop
+      }
+
+      // UI updates
+      setCurrentMeasureIdx(measureIdxRef.current);
+      setCurrentBeat(beatIdxRef.current);
+
+      // Play sound for this beat
+      if (beatIdxRef.current === 0) {
         hiPlayer.seekTo(0);
         setTimeout(() => hiPlayer.play(), 1);
       } else {
         loPlayer.seekTo(0);
         setTimeout(() => loPlayer.play(), 1);
       }
-      setCurrentBeat(countInBeat);
-      countInBeat++;
-      if (countInBeat === 4) {
-        // End count-in, start show playback after last beat is shown
-        timerRef.current?.stop?.();
-        setTimeout(() => {
-          setIsCountIn(false);
-          setCurrentBeat(0);
-          startShowPlayback();
-        }, countInBeatDuration); // Let the last beat display for its full duration
-      }
-    }, countInBeatDuration, { immediate: true });
-    timerRef.current.start();
-  };
 
-  // Start show playback
-  function startShowPlayback() {
-    if (!currentShow || !currentShow.measures.length) return;
-    let measureIdx = 0;
-    let beat = 0;
-    const playMeasure = (idx: number) => {
-      const measure = currentShow.measures[idx];
-      if (!measure) {
-        handleStop();
-        return;
+      // Update timer interval for next beat **before** Timer schedules the next round
+      const nextBeatDuration = getBeatDuration(newMeasure.tempo, newMeasure.timeSignature.denominator);
+      if (timerRef.current) {
+        timerRef.current.timeInterval = nextBeatDuration;
       }
-      const { numerator, denominator } = measure.timeSignature;
-      const tempo = measure.tempo;
-      const beatDuration = getBeatDuration(tempo, denominator);
-      beat = 0;
-      setCurrentMeasureIdx(idx);
-      setCurrentBeat(0);
-      timerRef.current?.stop?.();
-      timerRef.current = new Timer(() => {
-        // Play sound (downbeat = 0)
-        if (beat === 0) {
-          hiPlayer.seekTo(0);
-          setTimeout(() => hiPlayer.play(), 1);
-        } else {
-          loPlayer.seekTo(0);
-          setTimeout(() => loPlayer.play(), 1);
-        }
-        setCurrentBeat(beat);
-        beat++;
-        if (beat === numerator) {
-          // End of measure, let last beat display for its full duration
-          timerRef.current?.stop?.();
-          setTimeout(() => {
-            if (idx + 1 < currentShow.measures.length) {
-              playMeasure(idx + 1);
-            } else {
-              handleStop();
-            }
-          }, beatDuration);
-        }
-      }, beatDuration, { immediate: true });
-      timerRef.current.start();
     };
-    playMeasure(0);
+
+    // Clean any existing timer
+    if (timerRef.current) {
+      timerRef.current.stop();
+      timerRef.current = null;
+    }
+
+    // Create and start timer for subsequent beats
+    const initialDuration = computeCurrentBeatDuration();
+    timerRef.current = new Timer(onTick, initialDuration, { immediate: false });
+    timerRef.current.start();
   }
 
   // Stop playback
   const handleStop = () => {
-    timerRef.current?.stop?.();
+    console.log('handleStop called, resetting state and refs');
+    if (timerRef.current) {
+      timerRef.current.stop();
+      timerRef.current = null;
+    }
     setIsPlaying(false);
     setIsCountIn(false);
     setCurrentMeasureIdx(0);
-    setCurrentBeat(0);
+    setCurrentBeat(-1); // No beat highlighted after stop
+    // Do NOT reset measureIdxRef.current or beatIdxRef.current here
   };
 
   // Cleanup timer on unmount
@@ -330,8 +401,9 @@ export default function ShowModeScreen() {
               style={[
                 styles.tempoDot,
                 (isCountIn
-                  ? (i === currentBeat && styles.tempoDotCountInActive)
-                  : (i === currentBeat && styles.tempoDotActive)),
+                  ? (currentBeat === i && isCountIn)
+                  : (currentBeat === i && isPlaying)) && styles.tempoDotActive,
+                isCountIn && (currentBeat === i && styles.tempoDotCountInActive),
               ]}
             />
           ))}
