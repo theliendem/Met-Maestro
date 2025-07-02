@@ -1,13 +1,13 @@
 import { ThemedView } from '@/components/ThemedView';
 import Slider from '@react-native-community/slider';
 import { createAudioPlayer, useAudioPlayer } from 'expo-audio';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, IconButton, Text, useTheme } from 'react-native-paper';
 import Timer from '../../utils/timer';
 
 const NUMERATOR_MIN = 1;
-const NUMERATOR_MAX = 12;
+const NUMERATOR_MAX = 15;
 const DENOMINATORS = [2, 4, 8, 16];
 const TEMPO_MIN = 40;
 const TEMPO_MAX = 240;
@@ -15,7 +15,7 @@ const TEMPO_MAX = 240;
 // Helper to play overlapping sound
 async function playOverlappingSound(source: number) {
   const player = createAudioPlayer(source);
-  await player.play();
+  player.play();
   // Release after playback finishes
   player.addListener('playbackStatusUpdate', (status: { didJustFinish?: boolean }) => {
     if (status.didJustFinish) {
@@ -72,7 +72,7 @@ export default function MetronomeScreen() {
       });
     };
     // Start timer
-    timerRef.current = new Timer(onTick, beatDuration, { immediate: false });
+    timerRef.current = new Timer(onTick, beatDuration, { immediate: true });
     timerRef.current.start();
     return () => {
       timerRef.current?.stop();

@@ -167,35 +167,45 @@
 
 ## **Phase 2: Met Mode Core Functionality**
 1. ✅ Build the MetModeScreen layout and implement state management for time signature, tempo, and play state:
-   - Implement the time signature selector with chevrons and visual bar.
-   - Add the tempo slider and numeric display (with draggable thumb).
-   - Add the play/stop button.
-   - Add the tempo bar component.
-   - Use React state to manage time signature, tempo, and play state.
-2. Connect the timer utility to drive beat timing.
-3. Integrate expo-audio to play click sounds on each beat (with downbeat accent).
-4. Animate the tempo bar in sync with the beats.
-5. Test for timing accuracy and UI responsiveness.
+   - ✅ Implement the time signature selector with chevrons and visual bar.
+   - ✅ Add the tempo slider and numeric display (with draggable thumb).
+   - ✅ Add the play/stop button.
+   - ✅ Add the tempo bar component.
+   - ✅ Use React state to manage time signature, tempo, and play state.
+2. ✅ Connect the timer utility to drive beat timing.
+3. ✅ Integrate expo-audio to play click sounds on each beat (with downbeat accent).
+4. ✅ Animate the tempo bar in sync with the beats.
+5. ⚠️ Potentially change from expo-audio to react-native-sound so sounds can overlap and not get cut off.
 
 ## **Phase 3: Show Mode Core Functionality**
 1. ✅ Build the ShowModeScreen UI, implement local state logic for adding/deleting measures, creating/renaming/deleting shows, switching between shows, and persistence using AsyncStorage, and implement logic to add multiple measures at once.
-2. Implement playback logic:
-   - 4-beat count-in (audio and visual).
-   - Play through all measures, updating timer and tempo bar as needed.
-   - Handle time signature and tempo changes between measures.
-3. Integrate expo-audio for all playback.
-4. Test for timing accuracy, measure transitions, and UI responsiveness.
+2. Add the ability to be able to edit measures (in compact mode) and import/export shows as files.
+3. ✅ Implement playback logic:
+   - ✅ 4-beat count-in (audio and visual). Make sure there's a banner that says "Count-in" when it starts.
+   - ✅ Play through all measures, updating timer and tempo bar as needed.
+   - ✅ Handle time signature and tempo changes between measures.
+4. ❌ Capture the value of all variables when the app is started and store it in a json/array, then when a show is done playing, reset to those values using that json/array to see if that fixes the second-time playback issue.
 
 ## **Phase 4: Polish & UX Enhancements**
-1. Refine dark mode UI for modern, minimalist look.
+1. Refine dark mode UI for modern, minimalist look. (And consistent UI e.g. same colored buttons, background, section backgrounds etc.)
+2. Refine UI (make the play button larger, move the play button/tempo bar to the bottom on show mode)
 2. Add accessibility features (large touch targets, haptics, etc.).
 3. Add error handling and edge case management (e.g., invalid time signatures, empty shows).
 4. Optimize for performance and battery usage.
 
-## **Phase 5: Testing & Optional Features**
-1. Write unit tests for timer and show logic.
-2. Conduct manual testing on multiple devices.
-3. (Optional) Implement advanced features (subdivisions, accent patterns, export/import, etc.).
+## **Phase 5: Tuner!**
+1. idk add in a tuner somehow lol
+
+## **Potential future ideas**
+1. Subdivisions per beat
+2. Accent patterns (e.g. for 7/8: O-o-O-o-O-o-o). Add in presets but also allow the user to create their own.
+3. Tap tempo: Add a button which lets the user set the tempo by tapping on the button consistently.
+4. Practice modes: the tempo gradually increases/decreases over time.
+5. Customizable sounds: offer a variety of different presets for sounds like woodblock, cowbell, electronic clicks etc.
+6. Recording/playback? For practice, allow the user to record themself playing with the met then be able to listen back and check their timing.
+7. Timer/practice session log
+8. Polyrhythm support? maybe with visuals too
+9. Different themes for customizability
 
 ---
 
