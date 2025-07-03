@@ -3,7 +3,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAudioPlayer } from 'expo-audio';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FlatList, Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { Button, Snackbar, Switch } from 'react-native-paper';
 import Timer from '../../utils/timer';
@@ -43,10 +43,7 @@ export default function ShowModeScreen() {
   ]);
   const [selectedShow, setSelectedShow] = useState<string | null>('1');
   const [showAddMeasure, setShowAddMeasure] = useState(false);
-  const [showRename, setShowRename] = useState(false);
-  const [showNew, setShowNew] = useState(false);
   const [renameValue, setRenameValue] = useState<string>('');
-  const [newShowName, setNewShowName] = useState<string>('');
   // Add measure popup state
   const [numMeasures, setNumMeasures] = useState<string>('1');
   const [tempo, setTempo] = useState<string>('120');
@@ -73,6 +70,54 @@ export default function ShowModeScreen() {
   // Refs to track current position during playback without causing re-renders
   const measureIdxRef = useRef<number>(0);
   const beatIdxRef   = useRef<number>(0);
+
+  // Keep track of every Timer instance so we can fully clean them up on stop/finish
+  const timersRef = useRef<any[]>([]);
+
+  // Snapshot of initial state that we can restore after a show completes
+  const initialSnapshotRef = useRef<any>(null);
+  const snapshotTakenRef = useRef<boolean>(false);
+
+  // Take the snapshot only once – after shows have loaded the very first time
+  useEffect(() => {
+    if (!snapshotTakenRef.current && shows.length) {
+      initialSnapshotRef.current = {
+        selectedShow,
+        showAddMeasure,
+        renameValue,
+        numMeasures,
+        tempo,
+        numerator,
+        denominator,
+        condensedView,
+      };
+      snapshotTakenRef.current = true;
+    }
+  }, [shows, selectedShow]);
+
+  // Helper to restore all snapshotted state values
+  const restoreSnapshot = () => {
+    const snap = initialSnapshotRef.current;
+    if (!snap) return;
+    setSelectedShow(snap.selectedShow);
+    setShowAddMeasure(snap.showAddMeasure);
+    setRenameValue(snap.renameValue);
+    setNumMeasures(snap.numMeasures);
+    setTempo(snap.tempo);
+    setNumerator(snap.numerator);
+    setDenominator(snap.denominator);
+    setCondensedView(snap.condensedView);
+
+    // Reset refs
+    measureIdxRef.current = 0;
+    beatIdxRef.current = 0;
+  };
+
+  // Called when a show finishes playing (natural end)
+  const handleFinish = () => {
+    handleStop();
+    restoreSnapshot();
+  };
 
   // Audio players
   const hiPlayer = useAudioPlayer(require('@/assets/sounds/click_hi.wav'));
@@ -251,6 +296,8 @@ export default function ShowModeScreen() {
         startShowPlayback();
       }
     }, countInBeatDuration, { immediate: false });
+    // Track this timer so we can fully clean it up later
+    timersRef.current.push(timerRef.current);
     timerRef.current.start();
   };
 
@@ -291,15 +338,15 @@ export default function ShowModeScreen() {
       console.log('TICK: measureIdxRef', measureIdxRef.current, 'beatIdxRef', beatIdxRef.current);
       // If we've reached the end, stop and reset
       if (measureIdxRef.current >= totalMeasures) {
-        console.log('END: handleStop called (measureIdxRef >= totalMeasures)', measureIdxRef.current, totalMeasures);
-        handleStop();
-        return; // Always return immediately after handleStop
+        console.log('END: handleFinish called (measureIdxRef >= totalMeasures)', measureIdxRef.current, totalMeasures);
+        handleFinish();
+        return; // Always return immediately after handleFinish
       }
       const currMeasure = getActiveMeasure();
       if (!currMeasure) {
-        console.log('END: handleStop called (no currMeasure)');
-        handleStop();
-        return; // Always return immediately after handleStop
+        console.log('END: handleFinish called (no currMeasure)');
+        handleFinish();
+        return; // Always return immediately after handleFinish
       }
       const { numerator } = currMeasure.timeSignature;
 
@@ -312,17 +359,17 @@ export default function ShowModeScreen() {
         measureIdxRef.current += 1;
         // If we've reached the end, stop and reset
         if (measureIdxRef.current >= totalMeasures) {
-          console.log('END: handleStop called (measureIdxRef >= totalMeasures) after measure increment', measureIdxRef.current, totalMeasures);
-          handleStop();
-          return; // Always return immediately after handleStop
+          console.log('END: handleFinish called (measureIdxRef >= totalMeasures) after measure increment', measureIdxRef.current, totalMeasures);
+          handleFinish();
+          return; // Always return immediately after handleFinish
         }
       }
 
       const newMeasure = getActiveMeasure();
       if (!newMeasure) {
-        console.log('END: handleStop called (no newMeasure)');
-        handleStop();
-        return; // Always return immediately after handleStop
+        console.log('END: handleFinish called (no newMeasure)');
+        handleFinish();
+        return; // Always return immediately after handleFinish
       }
 
       // UI updates
@@ -354,6 +401,7 @@ export default function ShowModeScreen() {
     // Create and start timer for subsequent beats
     const initialDuration = computeCurrentBeatDuration();
     timerRef.current = new Timer(onTick, initialDuration, { immediate: false });
+    timersRef.current.push(timerRef.current);
     timerRef.current.start();
   }
 
@@ -364,6 +412,11 @@ export default function ShowModeScreen() {
       timerRef.current.stop();
       timerRef.current = null;
     }
+    // Stop and clear ANY other timers that may still be running
+    timersRef.current.forEach(t => {
+      if (t && t.stop) t.stop();
+    });
+    timersRef.current.length = 0;
     setIsPlaying(false);
     setIsCountIn(false);
     setCurrentMeasureIdx(0);
@@ -420,14 +473,7 @@ export default function ShowModeScreen() {
 
       {/* Show Manager Row */}
       <ScrollView horizontal style={[styles.showManagerRow, { flex: 2 }]} contentContainerStyle={{ alignItems: 'center' }}>
-        <TouchableOpacity style={styles.iconButton} onPress={() => {
-          const id = Date.now().toString() + Math.random();
-          const newShowNameGenerated = `Show ${shows.length + 1}`;
-          setShows(shows => [...shows, { id, name: newShowNameGenerated, measures: [] }]);
-          setSelectedShow(id);
-          setSnackbarMessage(`${newShowNameGenerated} has been created!`);
-          setSnackbarVisible(true);
-        }}>
+        <TouchableOpacity style={styles.iconButton} onPress={() => handleAddShow()}>
           <IconSymbol name="plus" size={22} color="#fff" />
         </TouchableOpacity>
         {shows.map(show => (

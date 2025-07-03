@@ -184,7 +184,7 @@
    - ✅ 4-beat count-in (audio and visual). Make sure there's a banner that says "Count-in" when it starts.
    - ✅ Play through all measures, updating timer and tempo bar as needed.
    - ✅ Handle time signature and tempo changes between measures.
-4. ❌ Capture the value of all variables when the app is started and store it in a json/array, then when a show is done playing, reset to those values using that json/array to see if that fixes the second-time playback issue.
+4. ✅ Capture the value of all variables when the app is started and store it in a json/array, then when a show is done playing, reset to those values using that json/array to see if that fixes the second-time playback issue.
 
 ## **Phase 4: Polish & UX Enhancements**
 1. Refine dark mode UI for modern, minimalist look. (And consistent UI e.g. same colored buttons, background, section backgrounds etc.)
