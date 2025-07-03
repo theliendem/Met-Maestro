@@ -206,6 +206,7 @@
 7. Timer/practice session log
 8. Polyrhythm support? maybe with visuals too
 9. Different themes for customizability
+10. Add a stats page where you can see how much you've played each show, how long you've had the app open, etc.
 
 ---
 

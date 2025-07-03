@@ -72,7 +72,7 @@ export default function MetronomeScreen() {
       });
     };
     // Start timer
-    timerRef.current = new Timer(onTick, beatDuration, { immediate: true });
+    timerRef.current = new Timer(onTick, beatDuration, { immediate: false });
     timerRef.current.start();
     return () => {
       timerRef.current?.stop();

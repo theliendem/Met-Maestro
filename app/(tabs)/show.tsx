@@ -3,6 +3,9 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAudioPlayer } from 'expo-audio';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { Button, Snackbar, Switch } from 'react-native-paper';
@@ -61,6 +64,9 @@ export default function ShowModeScreen() {
   // Snackbar state
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>('');
+  const [showImportConflict, setShowImportConflict] = useState(false);
+  const [importedShow, setImportedShow] = useState<Show | null>(null);
+  const [conflictShowId, setConflictShowId] = useState<string | null>(null);
   // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCountIn, setIsCountIn] = useState(false);
@@ -442,6 +448,99 @@ export default function ShowModeScreen() {
     tempoBarSegments = Array.from({ length: 4 });
   }
 
+  // Import show from JSON file
+  const handleImportShow = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/json',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+
+      const fileUri = result.assets[0].uri;
+      const fileContent = await FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType.UTF8 });
+      
+      let importedData: any;
+      try {
+        importedData = JSON.parse(fileContent);
+      } catch (e) {
+        setSnackbarMessage('Invalid JSON file format.');
+        setSnackbarVisible(true);
+        return;
+      }
+
+      // Validate the imported data structure
+      if (!importedData.id || !importedData.name || !Array.isArray(importedData.measures)) {
+        setSnackbarMessage('Invalid show data format. File must contain id, name, and measures array.');
+        setSnackbarVisible(true);
+        return;
+      }
+
+      // Validate each measure has required properties
+      for (const measure of importedData.measures) {
+        if (!measure.id || !measure.timeSignature || !measure.tempo ||
+            typeof measure.timeSignature.numerator !== 'number' ||
+            typeof measure.timeSignature.denominator !== 'number' ||
+            typeof measure.tempo !== 'number') {
+          setSnackbarMessage('Invalid measure data format in imported file.');
+          setSnackbarVisible(true);
+          return;
+        }
+      }
+
+      // Check for ID conflict
+      const existingShow = shows.find(s => s.id === importedData.id);
+      if (existingShow) {
+        setImportedShow(importedData);
+        setConflictShowId(importedData.id);
+        setShowImportConflict(true);
+        return;
+      }
+
+      // No conflict, add the show directly
+      addImportedShow(importedData);
+    } catch (error) {
+      console.error('Import error:', error);
+      setSnackbarMessage('Failed to import show. Please try again.');
+      setSnackbarVisible(true);
+    }
+  };
+
+  // Add imported show to the shows array
+  const addImportedShow = (showData: Show) => {
+    setShows((prevShows) => [...prevShows, showData]);
+    setSelectedShow(showData.id);
+    setSnackbarMessage(`${showData.name} has been imported!`);
+    setSnackbarVisible(true);
+  };
+
+  // Handle import conflict resolution
+  const handleImportConflict = (replace: boolean) => {
+    if (!importedShow || !conflictShowId) return;
+
+    if (replace) {
+      // Replace existing show
+      setShows((prevShows) => prevShows.map((show) =>
+        show.id === conflictShowId ? importedShow : show
+      ));
+      setSelectedShow(importedShow.id);
+      setSnackbarMessage(`${importedShow.name} has been imported and replaced the existing show.`);
+    } else {
+      // Import as copy with new ID
+      const copiedShow = {
+        ...importedShow,
+        id: Date.now().toString() + Math.random(),
+        name: `${importedShow.name} (Copy)`,
+      };
+      addImportedShow(copiedShow);
+    }
+
+    setShowImportConflict(false);
+    setImportedShow(null);
+    setConflictShowId(null);
+  };
+
   // UI rendering
   return (
     <ThemedView style={styles.container}>
@@ -475,6 +574,9 @@ export default function ShowModeScreen() {
       <ScrollView horizontal style={[styles.showManagerRow, { flex: 2 }]} contentContainerStyle={{ alignItems: 'center' }}>
         <TouchableOpacity style={styles.iconButton} onPress={() => handleAddShow()}>
           <IconSymbol name="plus" size={22} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconButton} onPress={handleImportShow}>
+          <IconSymbol name="arrow.down.doc" size={22} color="#fff" />
         </TouchableOpacity>
         {shows.map(show => (
           <View key={show.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -623,7 +725,26 @@ export default function ShowModeScreen() {
               keyboardType="default"
               autoFocus
             />
-            <Button mode="outlined" style={{ marginTop: 12 }} onPress={() => {/* TODO: Export logic */}}>
+            <Button mode="outlined" style={{ marginTop: 12 }} onPress={async () => {
+              // Export logic
+              if (!editShowId) return;
+              const showToExport = shows.find(s => s.id === editShowId);
+              if (!showToExport) return;
+              const exportData = {
+                id: showToExport.id,
+                name: showToExport.name,
+                measures: showToExport.measures,
+              };
+              const json = JSON.stringify(exportData, null, 2);
+              const fileName = `metmaestro-show-${showToExport.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${showToExport.id}.json`;
+              const fileUri = FileSystem.cacheDirectory + fileName;
+              await FileSystem.writeAsStringAsync(fileUri, json, { encoding: FileSystem.EncodingType.UTF8 });
+              if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(fileUri, { mimeType: 'application/json', dialogTitle: 'Export Show' });
+              } else {
+                alert('Sharing is not available on this device.');
+              }
+            }}>
               Export as File
             </Button>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
@@ -643,6 +764,21 @@ export default function ShowModeScreen() {
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
               <Button onPress={() => setConfirmDelete(false)} mode="text">Cancel</Button>
               <Button onPress={() => { handleDeleteShow(editShowId); setConfirmDelete(false); setShowEdit(false); }} mode="contained" style={{ backgroundColor: '#e53935' }}>Delete</Button>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Import Conflict Modal */}
+      <Modal visible={showImportConflict} transparent animationType="none">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowImportConflict(false)}>
+          <TouchableOpacity style={styles.modalContent} activeOpacity={1} onPress={e => e.stopPropagation()}>
+            <ThemedText type="title">Import Conflict</ThemedText>
+            <ThemedText>A show with the same ID already exists. Would you like to replace it or import as a copy?</ThemedText>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+              <Button onPress={() => setShowImportConflict(false)} mode="text">Cancel</Button>
+              <Button onPress={() => handleImportConflict(false)} mode="outlined">Import as Copy</Button>
+              <Button onPress={() => handleImportConflict(true)} mode="contained">Replace</Button>
             </View>
           </TouchableOpacity>
         </TouchableOpacity>
