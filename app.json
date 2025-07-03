@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "met-maestro",
-    "slug": "met-maestro",
+    "name": "Met Maestro",
+    "slug": "Met Maestro",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
