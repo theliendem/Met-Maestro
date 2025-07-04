@@ -1,38 +1,38 @@
 {
   "expo": {
     "name": "Met Maestro",
-    "slug": "Met Maestro",
+    "slug": "met-maestro",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./met-maestro-logo.png",
     "scheme": "metmaestro",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.theliendem.metmaestro",
+      "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./met-maestro-logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": [
-        "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
-      ],
+      "permissions": [],
+      "versionCode": 1,
       "package": "com.theliendem.metmaestro"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./met-maestro-logo.png"
+    },
+    "updates": {
+      "channel": "production"
     },
     "plugins": [
       "expo-router",
