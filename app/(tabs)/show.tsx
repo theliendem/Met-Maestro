@@ -340,17 +340,13 @@ export default function ShowModeScreen() {
     const onTick = () => {
       // Guard: if timerRef.current is null, exit immediately (prevents infinite loop after stop)
       if (!timerRef.current) return;
-      // Log current refs before any logic
-      console.log('TICK: measureIdxRef', measureIdxRef.current, 'beatIdxRef', beatIdxRef.current);
       // If we've reached the end, stop and reset
       if (measureIdxRef.current >= totalMeasures) {
-        console.log('END: handleFinish called (measureIdxRef >= totalMeasures)', measureIdxRef.current, totalMeasures);
         handleFinish();
         return; // Always return immediately after handleFinish
       }
       const currMeasure = getActiveMeasure();
       if (!currMeasure) {
-        console.log('END: handleFinish called (no currMeasure)');
         handleFinish();
         return; // Always return immediately after handleFinish
       }
@@ -365,7 +361,6 @@ export default function ShowModeScreen() {
         measureIdxRef.current += 1;
         // If we've reached the end, stop and reset
         if (measureIdxRef.current >= totalMeasures) {
-          console.log('END: handleFinish called (measureIdxRef >= totalMeasures) after measure increment', measureIdxRef.current, totalMeasures);
           handleFinish();
           return; // Always return immediately after handleFinish
         }
@@ -373,7 +368,6 @@ export default function ShowModeScreen() {
 
       const newMeasure = getActiveMeasure();
       if (!newMeasure) {
-        console.log('END: handleFinish called (no newMeasure)');
         handleFinish();
         return; // Always return immediately after handleFinish
       }
@@ -413,7 +407,6 @@ export default function ShowModeScreen() {
 
   // Stop playback
   const handleStop = () => {
-    console.log('handleStop called, resetting state and refs');
     if (timerRef.current) {
       timerRef.current.stop();
       timerRef.current = null;
@@ -427,7 +420,6 @@ export default function ShowModeScreen() {
     setIsCountIn(false);
     setCurrentMeasureIdx(0);
     setCurrentBeat(-1); // No beat highlighted after stop
-    // Do NOT reset measureIdxRef.current or beatIdxRef.current here
   };
 
   // Cleanup timer on unmount

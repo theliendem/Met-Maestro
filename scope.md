@@ -175,7 +175,7 @@
 2. ✅ Connect the timer utility to drive beat timing.
 3. ✅ Integrate expo-audio to play click sounds on each beat (with downbeat accent).
 4. ✅ Animate the tempo bar in sync with the beats.
-5. ⚠️ Potentially change from expo-audio to react-native-sound so sounds can overlap and not get cut off.
+5. ⚠️ Potentially change from expo-audio to react-native-audio-playback so sounds can overlap and not get cut off. (Watch [this youtube video](https://www.youtube.com/watch?v=3PM9wjtqnzQ))
 
 ## **Phase 3: Show Mode Core Functionality**
 1. ✅ Build the ShowModeScreen UI, implement local state logic for adding/deleting measures, creating/renaming/deleting shows, switching between shows, and persistence using AsyncStorage, and implement logic to add multiple measures at once.
