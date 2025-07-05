@@ -157,15 +157,15 @@
 
 ---
 
-# Step-by-Step Build Plan
+# **Phase 1**
 
-## **Phase 1: Project Foundation & Core Utilities**
+## **Step 1: Project Foundation & Core Utilities**
 1. ✅ Initialize Expo project and set up version control.
 2. ✅ Install dependencies (`expo-audio`, UI library, etc.).
 3. ✅ Integrate and test the timer utility from timer.js.
 4. ✅ Set up a basic dark mode theme and global styles.
 
-## **Phase 2: Met Mode Core Functionality**
+## **Step 2: Met Mode Core Functionality**
 1. ✅ Build the MetModeScreen layout and implement state management for time signature, tempo, and play state:
    - ✅ Implement the time signature selector with chevrons and visual bar.
    - ✅ Add the tempo slider and numeric display (with draggable thumb).
@@ -177,26 +177,72 @@
 4. ✅ Animate the tempo bar in sync with the beats.
 5. ⚠️ Potentially change from expo-audio to react-native-audio-playback so sounds can overlap and not get cut off. (Watch [this youtube video](https://www.youtube.com/watch?v=3PM9wjtqnzQ))
 
-## **Phase 3: Show Mode Core Functionality**
+## **Step 3: Show Mode Core Functionality**
 1. ✅ Build the ShowModeScreen UI, implement local state logic for adding/deleting measures, creating/renaming/deleting shows, switching between shows, and persistence using AsyncStorage, and implement logic to add multiple measures at once.
-2. Add the ability to be able to edit measures (in compact mode) and import/export shows as files.
+2. ✅ Add the ability to be able to edit measures (in compact mode) and import/export shows as files.
 3. ✅ Implement playback logic:
    - ✅ 4-beat count-in (audio and visual). Make sure there's a banner that says "Count-in" when it starts.
    - ✅ Play through all measures, updating timer and tempo bar as needed.
    - ✅ Handle time signature and tempo changes between measures.
 4. ✅ Capture the value of all variables when the app is started and store it in a json/array, then when a show is done playing, reset to those values using that json/array to see if that fixes the second-time playback issue.
 
-## **Phase 4: Polish & UX Enhancements**
+## **Step 4: Polish & UX Enhancements**
 1. Refine dark mode UI for modern, minimalist look. (And consistent UI e.g. same colored buttons, background, section backgrounds etc.)
 2. Refine UI (make the play button larger, move the play button/tempo bar to the bottom on show mode)
 2. Add accessibility features (large touch targets, haptics, etc.).
 3. Add error handling and edge case management (e.g., invalid time signatures, empty shows).
 4. Optimize for performance and battery usage.
 
-## **Phase 5: Tuner!**
-1. idk add in a tuner somehow lol
+# **Phase 2: Real-Time Instrument Tuner (iOS / Android)**
 
-## **Potential future ideas**
+Latency target ≤ 150 ms; no `expo-av` dependency.
+
+## **Step 5  Research & Select Dependencies**
+1. 🔍 Investigate microphone-stream libraries that work in Expo & bare React Native (no `expo-av`):
+   - `react-native-audio-record` (PCM chunks via events)
+   - `react-native-live-audio-stream`
+   - `react-native-webrtc` (getUserMedia)
+2. 🔍 Choose a JS pitch-detection algo (no native code):
+   - Start with `pitchfinder`'s YIN implementation for good accuracy/CPU trade-off.
+3. ✅ Document the choice & reasoning in README.
+
+## **Step 6  Install & Configure Audio Capture**
+1. `npm install react-native-audio-record pitchfinder`
+2. Request mic permission on first tuner use (iOS & Android) – show fallback UI on denial.
+3. Configure recorder: 16 kHz, mono, 16-bit PCM, buffer ≈ 2048 samples (~128 ms).
+4. Stream PCM chunks to JS.
+
+## **Step 7  Implement Pitch-Detection Worker**
+1. Create `utils/pitchDetector.ts` that wraps YIN:
+   - `feed(Int16Array) → frequency | null`.
+2. Smooth output with moving average; convert frequency → `{note, octave, cents}`.
+3. Provide React hook `usePitch()` for components.
+
+## **Step 8  Build Tuner Screen UI**
+1. New file `app/(tabs)/tuner.tsx`:
+   - Large central note label (e.g., "A♯4").
+   - Horizontal/arc needle ±50 cents; color-coded (in-tune = blue, sharp/flat = orange).
+2. Animate needle with Reanimated/Animated.
+3. Start/stop recording on screen focus to save battery.
+4. Settings gear:
+   - Reference pitch slider (415–466 Hz, default 440).
+   - Toggle "Show cents" indicator.
+
+## **Step 9  Integrate with Navigation & Theme**
+1. Add new "Tuner" tab (icon: `tuningfork`) in `(tabs)/_layout.tsx`.
+2. Re-use existing Themed components for dark-mode.
+
+## **Step 10  Testing**
+1. Unit-test `pitchDetector` with synthetic sine waves.
+2. Manual tests on devices (guitar, piano app): verify latency < 150 ms & stability.
+3. Handle edge cases: noisy environments → show "—".
+
+## **Step 11  Polish & Accessibility**
+1. VoiceOver labels ("Note C4, 3 cents sharp").
+2. Wrap heavy processing in WebWorker/JSI later if CPU spikes.
+
+
+# **Potential future ideas**
 1. Subdivisions per beat
 2. Accent patterns (e.g. for 7/8: O-o-O-o-O-o-o). Add in presets but also allow the user to create their own.
 3. Tap tempo: Add a button which lets the user set the tempo by tapping on the button consistently.
@@ -207,6 +253,9 @@
 8. Polyrhythm support? maybe with visuals too
 9. Different themes for customizability
 10. Add a stats page where you can see how much you've played each show, how long you've had the app open, etc.
+11. Reference tone playback (play A440 or selected reference pitch for ear-training)
+12. Transposition / notation filter (display notes as Bb/Eb instrument view)
+13. Live waveform or spectrum visualiser for tuner screen
 
 ---
 

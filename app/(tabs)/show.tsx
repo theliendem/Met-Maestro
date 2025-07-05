@@ -533,6 +533,46 @@ export default function ShowModeScreen() {
     setConflictShowId(null);
   };
 
+  // --- STATE: Add state for editing condensed group ---
+  const [showEditCondensed, setShowEditCondensed] = useState(false);
+  const [editCondensedGroup, setEditCondensedGroup] = useState<CondensedMeasureGroup | null>(null);
+
+  // --- LOGIC: Handler to open edit modal for condensed group ---
+  const handleEditCondensedGroup = (group: CondensedMeasureGroup) => {
+    setEditCondensedGroup(group);
+    setNumMeasures(group.count.toString());
+    setTempo(group.tempo.toString());
+    setNumerator(group.timeSignature.numerator.toString());
+    setDenominator(group.timeSignature.denominator.toString());
+    setShowEditCondensed(true);
+  };
+
+  // --- LOGIC: Handler to save edits to condensed group ---
+  const handleSaveCondensedGroup = () => {
+    if (!editCondensedGroup || !currentShow) return;
+    setShows((prevShows) => prevShows.map((show) =>
+      show.id === selectedShow
+        ? {
+            ...show,
+            measures: show.measures.map((m) =>
+              editCondensedGroup.ids.includes(m.id)
+                ? {
+                    ...m,
+                    timeSignature: {
+                      numerator: parseInt(numerator, 10),
+                      denominator: parseInt(denominator, 10),
+                    },
+                    tempo: parseInt(tempo, 10),
+                  }
+                : m
+            ),
+          }
+        : show
+    ));
+    setShowEditCondensed(false);
+    setEditCondensedGroup(null);
+  };
+
   // UI rendering
   return (
     <ThemedView style={styles.container}>
@@ -604,14 +644,14 @@ export default function ShowModeScreen() {
               style={styles.measureList}
               contentContainerStyle={{ paddingBottom: 16 }}
               renderItem={({ item }) => (
-                <View style={styles.measureItem}>
+                <TouchableOpacity style={styles.measureItem} onPress={() => handleEditCondensedGroup(item)}>
                   <ThemedText>{item.count === 1 ? '1 mes.' : `${item.count} mes.`}</ThemedText>
                   <ThemedText>{item.timeSignature.numerator}/{item.timeSignature.denominator}</ThemedText>
                   <ThemedText>{item.tempo} BPM</ThemedText>
-                  <TouchableOpacity style={styles.iconButtonSmall} onPress={() => handleDeleteCondensedGroup(item.ids)}>
+                  <TouchableOpacity style={styles.iconButtonSmall} onPress={(e) => { e.stopPropagation(); handleDeleteCondensedGroup(item.ids); }}>
                     <IconSymbol name="trash" size={18} color="#fff" />
                   </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
               )}
             />
           ) : (
@@ -771,6 +811,70 @@ export default function ShowModeScreen() {
               <Button onPress={() => setShowImportConflict(false)} mode="text">Cancel</Button>
               <Button onPress={() => handleImportConflict(false)} mode="outlined">Import as Copy</Button>
               <Button onPress={() => handleImportConflict(true)} mode="contained">Replace</Button>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Add Edit Condensed Group Modal (reusing Add Measures UI, but for editing) */}
+      <Modal visible={showEditCondensed} transparent animationType="none">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => { setShowEditCondensed(false); setEditCondensedGroup(null); }}>
+          <TouchableOpacity style={styles.modalContent} activeOpacity={1} onPress={e => e.stopPropagation()}>
+            <ThemedText type="title">Edit Measures</ThemedText>
+            <View style={{ marginBottom: 8 }}>
+              <ThemedText style={styles.inputLabel}>Number of measures</ThemedText>
+              <TextInput
+                ref={numMeasuresRef}
+                value={numMeasures}
+                editable={false}
+                style={[styles.input, { opacity: 0.6 }]}
+                placeholderTextColor="#888"
+                keyboardType="number-pad"
+              />
+            </View>
+            <View style={{ marginBottom: 8 }}>
+              <ThemedText style={styles.inputLabel}>Tempo (BPM)</ThemedText>
+              <TextInput
+                ref={tempoRef}
+                value={tempo}
+                onChangeText={setTempo}
+                style={styles.input}
+                placeholderTextColor="#888"
+                keyboardType="number-pad"
+                onFocus={e => tempoRef.current && tempoRef.current.setNativeProps({ selection: { start: 0, end: tempo.length } })}
+              />
+            </View>
+            <View style={{ flexDirection: 'column', marginBottom: 8 }}>
+              <ThemedText style={styles.inputLabel}>Time Signature</ThemedText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <TextInput
+                    ref={numeratorRef}
+                    value={numerator}
+                    onChangeText={setNumerator}
+                    style={styles.input}
+                    placeholderTextColor="#888"
+                    keyboardType="number-pad"
+                    onFocus={e => numeratorRef.current && numeratorRef.current.setNativeProps({ selection: { start: 0, end: numerator.length } })}
+                  />
+                </View>
+                <ThemedText type="defaultSemiBold">/</ThemedText>
+                <View style={{ flex: 1 }}>
+                  <TextInput
+                    ref={denominatorRef}
+                    value={denominator}
+                    onChangeText={setDenominator}
+                    style={styles.input}
+                    placeholderTextColor="#888"
+                    keyboardType="number-pad"
+                    onFocus={e => denominatorRef.current && denominatorRef.current.setNativeProps({ selection: { start: 0, end: denominator.length } })}
+                  />
+                </View>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+              <Button onPress={() => { setShowEditCondensed(false); setEditCondensedGroup(null); }} mode="text">Cancel</Button>
+              <Button onPress={handleSaveCondensedGroup} mode="contained">Save</Button>
             </View>
           </TouchableOpacity>
         </TouchableOpacity>
