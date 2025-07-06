@@ -68,6 +68,18 @@ export function useTuner(active: boolean = true) {
     }
   }, [chunk, permission, active]);
 
+  // Cleanup on unmount (clear buffers)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    return () => {
+      setNote(null);
+      setFreq(null);
+      setCents(null);
+      freqBuffer.current = [];
+      missedCount.current = 0;
+    };
+  }, []);
+
   return {
     note,
     freq,

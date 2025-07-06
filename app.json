@@ -2,7 +2,7 @@
   "expo": {
     "name": "Met Maestro",
     "slug": "met-maestro",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./met-maestro-logo.png",
     "scheme": "metmaestro",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.theliendem.metmaestro",
-      "buildNumber": "1",
+      "buildNumber": "6",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

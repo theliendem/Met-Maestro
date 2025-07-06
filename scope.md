@@ -254,7 +254,10 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
 11. Reference tone playback (play A440 or selected reference pitch for ear-training)
 12. Transposition / notation filter (display notes as Bb/Eb instrument view)
 13. Live waveform or spectrum visualiser for tuner screen
+14. Make it so if you tap on the slider bar in the met mode, it'll go there (so you don't have necessarily have to slide)
 
+# **NOTES TO SELF FOR SUBMITTING NEW VERSIONS**
+#### First increment version number and ios.buildNumber in app.json. THEN go into ios/MetMaestro/Info.plist and change the version and Bundle Version (VERY IMPORTANT!!! It will not work if you don't do both). Then do `eas build -p ios --profile production` then `eas submit -p ios --latest`
 ---
 
 **Ready to proceed with any phase or component—just let me know!** 

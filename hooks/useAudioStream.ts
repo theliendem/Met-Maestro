@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import * as audioStream from '../utils/audioStream';
 
 /**
@@ -15,6 +16,7 @@ export function useAudioStream() {
   const [permission, setPermission] = useState<'pending' | 'granted' | 'denied'>('pending');
   const [error, setError] = useState<string | null>(null);
   const startedRef = useRef(false);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
   useEffect(() => {
     let isMounted = true;
@@ -40,12 +42,46 @@ export function useAudioStream() {
       }
     }
     setup();
+
+    // AppState listener to stop/start stream when app backgrounded/foregrounded
+    const handleAppStateChange = async (nextState: AppStateStatus) => {
+      if (appStateRef.current.match(/inactive|background/) && nextState === 'active') {
+        // App has come to the foreground – re-check permission and restart if needed
+        const granted = await audioStream.isMicPermissionGranted();
+        if (granted) {
+          if (!startedRef.current) {
+            audioStream.start((pcm) => {
+              if (isMounted) setChunk(pcm);
+            });
+            startedRef.current = true;
+          }
+          setPermission('granted');
+        } else {
+          if (startedRef.current) {
+            audioStream.stop();
+            startedRef.current = false;
+          }
+          setPermission('denied');
+          setError('Microphone permission denied');
+        }
+      } else if (nextState.match(/inactive|background/)) {
+        // Going to background – stop stream to save battery
+        if (startedRef.current) {
+          audioStream.stop();
+          startedRef.current = false;
+        }
+      }
+      appStateRef.current = nextState;
+    };
+
+    const sub = AppState.addEventListener('change', handleAppStateChange);
     return () => {
       isMounted = false;
       if (startedRef.current) {
         audioStream.stop();
         startedRef.current = false;
       }
+      sub.remove();
     };
   }, []);
 

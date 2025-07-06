@@ -137,6 +137,7 @@ export default function MetronomeScreen() {
             value={tempo}
             onValueChange={setTempo}
             step={1}
+            tapToSeek={true}
             minimumTrackTintColor={colors.primary}
             maximumTrackTintColor={colors.surface}
             thumbTintColor={colors.primary}
