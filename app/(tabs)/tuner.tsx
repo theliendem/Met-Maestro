@@ -65,11 +65,6 @@ export default function TunerScreen() {
     }
   };
 
-  // Debug log
-  useEffect(() => {
-    console.log('Tuner values:', tuner);
-  }, [tuner.note, tuner.freq, tuner.cents, tuner.error]);
-
   // Only do conditional returns after all hooks
   if (checking) {
     return (
@@ -150,10 +145,6 @@ export default function TunerScreen() {
       <ThemedText style={styles.freqLabel}>{freq}</ThemedText>
       {/* Error display */}
       {tuner.error && <ThemedText style={{ color: '#e67c73', marginTop: 16 }}>{tuner.error}</ThemedText>}
-      {/* Debug section */}
-      <ThemedText style={{ marginTop: 24, fontSize: 12, color: '#888' }}>
-        Debug: note={String(tuner.note)} freq={String(tuner.freq)} cents={String(tuner.cents)} error={String(tuner.error)}
-      </ThemedText>
     </ThemedView>
   );
 }
