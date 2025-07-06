@@ -197,7 +197,7 @@
 
 Latency target ≤ 150 ms; no `expo-av` dependency.
 
-## **Step 5  Research & Select Dependencies**
+## **Step 5:  Research & Select Dependencies**
 1. ✅ **Chosen:** `react-native-live-audio-stream` for real-time PCM audio (lowest latency, built for streaming, ideal for tuner use case).
    - Not using `react-native-audio-record` (slightly higher latency, more for file recording).
    - Not using `expo-av` (deprecated) or `react-native-webrtc` (overkill for audio-only, larger bundle).
@@ -205,19 +205,18 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
    - Not using AMDF, Autocorrelation, or FFT (lower accuracy, more octave errors, less robust).
 3. ✅ Document the choice & reasoning in README.
 
-## **Step 6  Install & Configure Audio Capture**
+## **Step 6:  Install & Configure Audio Capture**
 1. ✅ `npm install react-native-live-audio-stream pitchfinder`
 2. ✅ Request mic permission on first tuner use (iOS & Android) – show fallback UI on denial.
 3. ✅ Configure recorder: 16 kHz, mono, 16-bit PCM, buffer ≈ 2048 samples (~128 ms).
-4. Stream PCM chunks to JS.
+4. ✅ Stream PCM chunks to JS *(Complete)*
 
-## **Step 7  Implement Pitch-Detection Worker**
-1. Create `utils/pitchDetector.ts` that wraps YIN:
-   - `feed(Int16Array) → frequency | null`.
+## **Step 7:  Implement Pitch-Detection Worker**
+1. ✅ Create `utils/pitchDetector.ts` that wraps YIN *(Complete)*
 2. Smooth output with moving average; convert frequency → `{note, octave, cents}`.
 3. Provide React hook `usePitch()` for components.
 
-## **Step 8  Build Tuner Screen UI**
+## **Step 8:  Build Tuner Screen UI**
 1. New file `app/(tabs)/tuner.tsx`:
    - Large central note label (e.g., "A♯4").
    - Horizontal/arc needle ±50 cents; color-coded (in-tune = blue, sharp/flat = orange).
@@ -227,16 +226,16 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
    - Reference pitch slider (415–466 Hz, default 440).
    - Toggle "Show cents" indicator.
 
-## **Step 9  Integrate with Navigation & Theme**
+## **Step 9:  Integrate with Navigation & Theme**
 1. Add new "Tuner" tab (icon: `tuningfork`) in `(tabs)/_layout.tsx`.
 2. Re-use existing Themed components for dark-mode.
 
-## **Step 10  Testing**
+## **Step 10:  Testing**
 1. Unit-test `pitchDetector` with synthetic sine waves.
 2. Manual tests on devices (guitar, piano app): verify latency < 150 ms & stability.
 3. Handle edge cases: noisy environments → show "—".
 
-## **Step 11  Polish & Accessibility**
+## **Step 11:  Polish & Accessibility**
 1. VoiceOver labels ("Note C4, 3 cents sharp").
 2. Wrap heavy processing in WebWorker/JSI later if CPU spikes.
 

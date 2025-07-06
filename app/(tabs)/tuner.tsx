@@ -4,17 +4,27 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useTuner } from '../../hooks/useTuner';
 import { isMicPermissionGranted, requestMicPermission } from '../../utils/audioStream';
 
 export default function TunerScreen() {
+  // All hooks must be called before any return!
   const [permission, setPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown');
   const [checking, setChecking] = useState(true);
   const [requestedOnce, setRequestedOnce] = useState(false);
   const needleAnim = useRef(new Animated.Value(0)).current;
-  const tuner = useTuner();
+  const [isFocused, setIsFocused] = useState(true);
+  // Track focus state
+  useFocusEffect(
+    React.useCallback(() => {
+      setIsFocused(true);
+      return () => setIsFocused(false);
+    }, [])
+  );
+  const tuner = useTuner(isFocused);
 
   useEffect(() => {
     (async () => {
@@ -24,14 +34,6 @@ export default function TunerScreen() {
       setChecking(false);
     })();
   }, []);
-
-  // Start/stop tuner on permission
-  useEffect(() => {
-    if (permission === 'granted') {
-      tuner.start();
-      return () => tuner.stop();
-    }
-  }, [permission]);
 
   // Animate needle
   useEffect(() => {
@@ -63,6 +65,12 @@ export default function TunerScreen() {
     }
   };
 
+  // Debug log
+  useEffect(() => {
+    console.log('Tuner values:', tuner);
+  }, [tuner.note, tuner.freq, tuner.cents, tuner.error]);
+
+  // Only do conditional returns after all hooks
   if (checking) {
     return (
       <ThemedView style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -102,9 +110,9 @@ export default function TunerScreen() {
   }
 
   // --- Tuner UI ---
-  const detected = tuner.note && tuner.freq && tuner.cents !== null && !tuner.error;
+  const detected = tuner.note !== null && tuner.freq !== null && tuner.cents !== null && !tuner.error;
   const note = detected ? tuner.note : '—';
-  const freq = detected && tuner.freq ? `${tuner.freq.toFixed(1)} Hz` : '—';
+  const freq = detected && tuner.freq !== null ? `${tuner.freq.toFixed(1)} Hz` : '—';
   const cents = detected && tuner.cents !== null ? (tuner.cents > 0 ? `+${tuner.cents}` : `${tuner.cents}`) : '—';
   const isInTune = detected && Math.abs(tuner.cents ?? 999) <= 5;
   const needleColor = !detected ? '#888' : isInTune ? '#2196f3' : '#ff9800';
@@ -142,6 +150,10 @@ export default function TunerScreen() {
       <ThemedText style={styles.freqLabel}>{freq}</ThemedText>
       {/* Error display */}
       {tuner.error && <ThemedText style={{ color: '#e67c73', marginTop: 16 }}>{tuner.error}</ThemedText>}
+      {/* Debug section */}
+      <ThemedText style={{ marginTop: 24, fontSize: 12, color: '#888' }}>
+        Debug: note={String(tuner.note)} freq={String(tuner.freq)} cents={String(tuner.cents)} error={String(tuner.error)}
+      </ThemedText>
     </ThemedView>
   );
 }
