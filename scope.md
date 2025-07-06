@@ -198,18 +198,17 @@
 Latency target ≤ 150 ms; no `expo-av` dependency.
 
 ## **Step 5  Research & Select Dependencies**
-1. 🔍 Investigate microphone-stream libraries that work in Expo & bare React Native (no `expo-av`):
-   - `react-native-audio-record` (PCM chunks via events)
-   - `react-native-live-audio-stream`
-   - `react-native-webrtc` (getUserMedia)
-2. 🔍 Choose a JS pitch-detection algo (no native code):
-   - Start with `pitchfinder`'s YIN implementation for good accuracy/CPU trade-off.
+1. ✅ **Chosen:** `react-native-live-audio-stream` for real-time PCM audio (lowest latency, built for streaming, ideal for tuner use case).
+   - Not using `react-native-audio-record` (slightly higher latency, more for file recording).
+   - Not using `expo-av` (deprecated) or `react-native-webrtc` (overkill for audio-only, larger bundle).
+2. ✅ **Chosen:** YIN algorithm from `pitchfinder` for pitch detection (most accurate, robust to noise, standard for instrument tuners).
+   - Not using AMDF, Autocorrelation, or FFT (lower accuracy, more octave errors, less robust).
 3. ✅ Document the choice & reasoning in README.
 
 ## **Step 6  Install & Configure Audio Capture**
-1. `npm install react-native-audio-record pitchfinder`
-2. Request mic permission on first tuner use (iOS & Android) – show fallback UI on denial.
-3. Configure recorder: 16 kHz, mono, 16-bit PCM, buffer ≈ 2048 samples (~128 ms).
+1. ✅ `npm install react-native-live-audio-stream pitchfinder`
+2. ✅ Request mic permission on first tuner use (iOS & Android) – show fallback UI on denial.
+3. ✅ Configure recorder: 16 kHz, mono, 16-bit PCM, buffer ≈ 2048 samples (~128 ms).
 4. Stream PCM chunks to JS.
 
 ## **Step 7  Implement Pitch-Detection Worker**

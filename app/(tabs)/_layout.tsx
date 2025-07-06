@@ -45,6 +45,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.bullet.rectangle" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="tuner"
+        options={{
+          title: 'Tuner',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="tuningfork" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }
