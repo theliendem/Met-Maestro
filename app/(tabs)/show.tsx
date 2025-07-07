@@ -1,3 +1,5 @@
+import { SettingsButton } from '@/components/SettingsButton';
+import { SettingsModal } from '@/components/SettingsModal';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -574,9 +576,15 @@ export default function ShowModeScreen() {
     setEditCondensedGroup(null);
   };
 
+  const [settingsVisible, setSettingsVisible] = useState(false);
+
   // UI rendering
   return (
     <ThemedView style={styles.container}>
+      {/* Settings gear */}
+      <SettingsButton onPress={() => setSettingsVisible(true)} />
+      {/* Settings Modal */}
+      <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
       {/* Tempo Bar & Play Button */}
       <View style={styles.tempoBarRow}>
         <View style={styles.tempoBar}>

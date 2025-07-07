@@ -1,10 +1,13 @@
+import { SettingsButton } from '@/components/SettingsButton';
+import { SettingsModal } from '@/components/SettingsModal';
 import { ThemedView } from '@/components/ThemedView';
 import { AppTheme } from '@/theme/AppTheme';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { createAudioPlayer, useAudioPlayer } from 'expo-audio';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Button, IconButton, Text } from 'react-native-paper';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { IconButton, Text } from 'react-native-paper';
 import Timer from '../../utils/timer';
 
 const NUMERATOR_MIN = 1;
@@ -33,6 +36,7 @@ export default function MetronomeScreen() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentBeat, setCurrentBeat] = useState(0); // 0-based
   const denominator = DENOMINATORS[denominatorIdx];
+  const [settingsVisible, setSettingsVisible] = useState(false);
 
   // Timer ref
   const timerRef = useRef<Timer | null>(null);
@@ -83,22 +87,43 @@ export default function MetronomeScreen() {
 
   // Tempo bar segments
   const tempoBar = Array.from({ length: numerator });
+  // Dynamic circle size and gap: 2 beats = 36px/16px, 15 beats = 18px/2px
+  const minCircleSize = 18;
+  const maxCircleSize = 36;
+  const minGap = 2;
+  const maxGap = 16;
+  const circleSize =
+    numerator <= 2
+      ? maxCircleSize
+      : numerator >= 15
+      ? minCircleSize
+      : Math.round(maxCircleSize - ((numerator - 2) / (15 - 2)) * (maxCircleSize - minCircleSize));
+  const circleGap =
+    numerator <= 2
+      ? maxGap
+      : numerator >= 15
+      ? minGap
+      : Math.round(maxGap - ((numerator - 2) / (15 - 2)) * (maxGap - minGap));
 
   return (
     <ThemedView style={styles.container}>
+      {/* Settings gear */}
+      <SettingsButton onPress={() => setSettingsVisible(true)} />
+      {/* Settings Modal */}
+      <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
       {/* Time Signature Selector */}
       <View style={styles.timeSignatureContainer}>
         <View style={styles.chevronRow}>
           <IconButton
             icon="chevron-left"
-            size={24}
+            size={36}
             onPress={() => setNumerator(Math.max(NUMERATOR_MIN, numerator - 1))}
             disabled={numerator === NUMERATOR_MIN}
           />
-          <Text variant="headlineLarge" style={styles.timeSigNumber}>{numerator}</Text>
+          <Text variant="displayLarge" style={styles.timeSigNumber}>{numerator}</Text>
           <IconButton
             icon="chevron-right"
-            size={24}
+            size={36}
             onPress={() => setNumerator(Math.min(NUMERATOR_MAX, numerator + 1))}
             disabled={numerator === NUMERATOR_MAX}
           />
@@ -107,14 +132,14 @@ export default function MetronomeScreen() {
         <View style={styles.chevronRow}>
           <IconButton
             icon="chevron-left"
-            size={24}
+            size={36}
             onPress={() => setDenominatorIdx(Math.max(0, denominatorIdx - 1))}
             disabled={denominatorIdx === 0}
           />
-          <Text variant="headlineLarge" style={styles.timeSigNumber}>{denominator}</Text>
+          <Text variant="displayLarge" style={styles.timeSigNumber}>{denominator}</Text>
           <IconButton
             icon="chevron-right"
-            size={24}
+            size={36}
             onPress={() => setDenominatorIdx(Math.min(DENOMINATORS.length - 1, denominatorIdx + 1))}
             disabled={denominatorIdx === DENOMINATORS.length - 1}
           />
@@ -123,7 +148,10 @@ export default function MetronomeScreen() {
 
       {/* Tempo Slider */}
       <View style={styles.tempoContainer}>
-        <Text variant="titleMedium" style={{ color: colors.text }}>Tempo: {tempo} BPM</Text>
+        <View style={styles.tempoLabel}>
+          <Text variant="displaySmall" style={{ color: colors.text, fontSize: 48, fontWeight: 'bold', paddingTop: 5 }}>{tempo}</Text>
+          <Text variant="titleMedium" style={{ color: colors.text, fontSize: 20 }}> BPM</Text>
+        </View>
         <View style={styles.sliderRow}>
           <IconButton
             icon="minus"
@@ -153,31 +181,39 @@ export default function MetronomeScreen() {
       </View>
 
       {/* Tempo Bar */}
-      <View style={styles.tempoBarContainer}>
+      <View style={[styles.tempoBarContainer, { gap: circleGap }]}>
         {tempoBar.map((_, i) => (
           <View
             key={i}
             style={{
               ...styles.tempoBarSegment,
+              width: circleSize,
+              height: circleSize,
+              borderRadius: circleSize / 2,
               backgroundColor: i === currentBeat ? colors.primary : colors.surface,
               borderColor: colors.primary,
               opacity: i === currentBeat ? 1 : 0.4,
+              marginHorizontal: 0, // gap is now handled by container
             }}
           />
         ))}
       </View>
 
       {/* Play/Stop Button */}
-      <Button
-        mode={isPlaying ? 'contained-tonal' : 'contained'}
-        onPress={() => setIsPlaying(!isPlaying)}
+      <TouchableOpacity
         style={styles.playButton}
-        icon={isPlaying ? 'stop' : 'play'}
-        labelStyle={{ fontSize: 22 }}
-        contentStyle={{ flexDirection: 'row-reverse' }}
+        onPress={() => setIsPlaying(!isPlaying)}
+        accessibilityRole="button"
+        accessibilityLabel={isPlaying ? 'Stop' : 'Play'}
+        activeOpacity={0.85}
       >
-        {isPlaying ? 'Stop' : 'Play'}
-      </Button>
+        <MaterialCommunityIcons
+          name={isPlaying ? 'stop' : 'play'}
+          size={80}
+          color={colors.primary}
+          style={{ alignSelf: 'center' }}
+        />
+      </TouchableOpacity>
     </ThemedView>
   );
 }
@@ -193,7 +229,7 @@ const styles = StyleSheet.create({
   },
   timeSignatureContainer: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 0,
   },
   chevronRow: {
     flexDirection: 'row',
@@ -201,20 +237,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   timeSigNumber: {
-    minWidth: 40,
+    minWidth: 60,
     textAlign: 'center',
     color: AppTheme.colors.text,
+    fontSize: 48,
   },
   horizontalBar: {
-    height: 2,
-    width: 60,
+    height: 3,
+    width: 90,
     backgroundColor: AppTheme.colors.icon,
-    marginVertical: 2,
+    marginVertical: 3,
     alignSelf: 'center',
   },
   tempoContainer: {
     alignItems: 'center',
     width: '100%',
+    marginTop: 8,
+  },
+  tempoLabel: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
   },
   sliderRow: {
     flexDirection: 'row',
@@ -229,19 +272,21 @@ const styles = StyleSheet.create({
   },
   tempoBarContainer: {
     flexDirection: 'row',
-    gap: 6,
-    marginVertical: 16,
+    marginVertical: 8,
   },
   tempoBarSegment: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    // width and height are now dynamic
     borderWidth: 2,
-    marginHorizontal: 2,
     borderColor: AppTheme.colors.primary,
   },
   playButton: {
     marginTop: 24,
-    minWidth: 160,
+    width: '92%',
+    alignSelf: 'center',
+    height: 144,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#202127',
   },
 }); 

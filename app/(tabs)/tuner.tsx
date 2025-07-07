@@ -1,13 +1,14 @@
 // Tuner screen UI
 // TODO: Implement tuner UI using useTuner hook
 
+import { SettingsButton } from '@/components/SettingsButton';
+import { SettingsModal } from '@/components/SettingsModal';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { AppTheme } from '@/theme/AppTheme';
-import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Linking, Platform, StyleSheet, View } from 'react-native';
 import { useTuner } from '../../hooks/useTuner';
 import { isMicPermissionGranted, requestMicPermission } from '../../utils/audioStream';
 
@@ -18,6 +19,7 @@ export default function TunerScreen() {
   const [requestedOnce, setRequestedOnce] = useState(false);
   const needleAnim = useRef(new Animated.Value(0)).current;
   const [isFocused, setIsFocused] = useState(true);
+  const [settingsVisible, setSettingsVisible] = useState(false);
   // Track focus state
   useFocusEffect(
     React.useCallback(() => {
@@ -116,9 +118,9 @@ export default function TunerScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Settings gear */}
-      <Pressable style={styles.settingsBtn} hitSlop={16} onPress={() => {}}>
-        <Ionicons name="settings-outline" size={28} color="#888" />
-      </Pressable>
+      <SettingsButton onPress={() => setSettingsVisible(true)} />
+      {/* Settings Modal */}
+      <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
       {/* Central note label */}
       <View style={styles.noteContainer}>
         <ThemedText style={styles.noteLabel} numberOfLines={1} adjustsFontSizeToFit>{note}</ThemedText>
@@ -157,13 +159,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
     backgroundColor: AppTheme.colors.background,
-  },
-  settingsBtn: {
-    position: 'absolute',
-    top: 32,
-    right: 24,
-    zIndex: 10,
-    opacity: 0.7,
   },
   noteContainer: {
     marginTop: 48,

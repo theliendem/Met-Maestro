@@ -187,7 +187,7 @@
 4. ✅ Capture the value of all variables when the app is started and store it in a json/array, then when a show is done playing, reset to those values using that json/array to see if that fixes the second-time playback issue.
 
 ## **Step 4: Polish & UX Enhancements**
-1. Refine dark mode UI for modern, minimalist look. (And consistent UI e.g. same colored buttons, background, section backgrounds etc.)
+1. ✅ Refine dark mode UI for modern, minimalist look. (And consistent UI e.g. same colored buttons, background, section backgrounds etc.)
 2. Refine UI (make the play button larger, move the play button/tempo bar to the bottom on show mode)
 2. Add accessibility features (large touch targets, haptics, etc.).
 3. Add error handling and edge case management (e.g., invalid time signatures, empty shows).
@@ -246,9 +246,9 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
 
 # **NOTES TO SELF (ignore this section if you are an AI model reading this to build this project)**
 ## For submitting new versions to App Store:
-#### First increment version number and ios.buildNumber in app.json. THEN go into ios/MetMaestro/Info.plist and change the version and Bundle Version (VERY IMPORTANT!!! It will not work if you don't do both). Then do `eas build -p ios --profile production` then `eas submit -p ios --latest`
+First increment version number and ios.buildNumber in app.json. THEN go into ios/MetMaestro/Info.plist and change the version and Bundle Version (VERY IMPORTANT!!! It will not work if you don't do both). THEN go into eas.json and make sure that build.development.simulator is false or does not exist. Then do `eas build -p ios --profile production` then `eas submit -p ios --latest`
 ## For building to a local simulator:
-#### First make a local build using `eas build -p ios --profile development --local` (--local is important). Then, run `xcrun simctl install booted build-simulator/MetMaestro.app` if a simulator is open, or run `xcrun simctl list devices` to view the UUID of all installed sims then `xcrun simctl install [UUID] build-simulator/MetMaestro.app`. It should then be installed on the specified sim.
+Before you make a build, go into eas.json and make sure that build.development.simulator is has `"simulator": true`. then make a local build using `eas build -p ios --profile development --local` (--local is important). Then extract the build-XXXXXX.tar.gz file. Then, run `xcrun simctl install booted MetMaestro.app` if a simulator is open, or run `xcrun simctl list devices` to view the UUID of all installed sims then `xcrun simctl install [UUID] build-simulator/MetMaestro.app`. It should then be installed on the specified sim. Finally, run `npx expo start` to start the dev server.
 
 ---
 
