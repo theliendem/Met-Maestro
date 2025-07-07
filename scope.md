@@ -213,31 +213,18 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
 
 ## **Step 7:  Implement Pitch-Detection Worker**
 1. ✅ Create `utils/pitchDetector.ts` that wraps YIN *(Complete)*
-2. Smooth output with moving average; convert frequency → `{note, octave, cents}`.
+2. ✅ Smooth output with moving average; convert frequency → `{note, octave, cents}` *(Complete)*
 3. Provide React hook `usePitch()` for components.
 
 ## **Step 8:  Build Tuner Screen UI**
-1. New file `app/(tabs)/tuner.tsx`:
+1. ✅ New file `app/(tabs)/tuner.tsx`: *(Complete)*
    - Large central note label (e.g., "A♯4").
    - Horizontal/arc needle ±50 cents; color-coded (in-tune = blue, sharp/flat = orange).
-2. Animate needle with Reanimated/Animated.
-3. Start/stop recording on screen focus to save battery.
+2. ✅ Animate needle with Reanimated/Animated *(Complete)*
+3. ✅ Start/stop recording on screen focus to save battery *(Complete)*
 4. Settings gear:
    - Reference pitch slider (415–466 Hz, default 440).
    - Toggle "Show cents" indicator.
-
-## **Step 9:  Integrate with Navigation & Theme**
-1. Add new "Tuner" tab (icon: `tuningfork`) in `(tabs)/_layout.tsx`.
-2. Re-use existing Themed components for dark-mode.
-
-## **Step 10:  Testing**
-1. Unit-test `pitchDetector` with synthetic sine waves.
-2. Manual tests on devices (guitar, piano app): verify latency < 150 ms & stability.
-3. Handle edge cases: noisy environments → show "—".
-
-## **Step 11:  Polish & Accessibility**
-1. VoiceOver labels ("Note C4, 3 cents sharp").
-2. Wrap heavy processing in WebWorker/JSI later if CPU spikes.
 
 
 # **Potential future ideas**
@@ -250,14 +237,19 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
 7. Timer/practice session log
 8. Polyrhythm support? maybe with visuals too
 9. Different themes for customizability
+- Make it so you can choose in settings if you want the UI to match your device's theme, or be in dark or light mode all the time.
 10. Add a stats page where you can see how much you've played each show, how long you've had the app open, etc.
 11. Reference tone playback (play A440 or selected reference pitch for ear-training)
 12. Transposition / notation filter (display notes as Bb/Eb instrument view)
 13. Live waveform or spectrum visualiser for tuner screen
 14. Make it so if you tap on the slider bar in the met mode, it'll go there (so you don't have necessarily have to slide)
 
-# **NOTES TO SELF FOR SUBMITTING NEW VERSIONS**
+# **NOTES TO SELF (ignore this section if you are an AI model reading this to build this project)**
+## For submitting new versions to App Store:
 #### First increment version number and ios.buildNumber in app.json. THEN go into ios/MetMaestro/Info.plist and change the version and Bundle Version (VERY IMPORTANT!!! It will not work if you don't do both). Then do `eas build -p ios --profile production` then `eas submit -p ios --latest`
+## For building to a local simulator:
+#### First make a local build using `eas build -p ios --profile development --local` (--local is important). Then, run `xcrun simctl install booted build-simulator/MetMaestro.app` if a simulator is open, or run `xcrun simctl list devices` to view the UUID of all installed sims then `xcrun simctl install [UUID] build-simulator/MetMaestro.app`. It should then be installed on the specified sim.
+
 ---
 
 **Ready to proceed with any phase or component—just let me know!** 

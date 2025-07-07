@@ -3,6 +3,7 @@
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { AppTheme } from '@/theme/AppTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
-    backgroundColor: 'transparent',
+    backgroundColor: AppTheme.colors.background,
   },
   settingsBtn: {
     position: 'absolute',

@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { AppTheme } from '@/theme/AppTheme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAudioPlayer } from 'expo-audio';
 import * as DocumentPicker from 'expo-document-picker';
@@ -895,7 +896,7 @@ export default function ShowModeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#181A20',
+    backgroundColor: AppTheme.colors.background,
     padding: 16,
     paddingTop: 96,
     gap: 16,

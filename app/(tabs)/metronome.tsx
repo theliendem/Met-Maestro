@@ -1,9 +1,10 @@
 import { ThemedView } from '@/components/ThemedView';
+import { AppTheme } from '@/theme/AppTheme';
 import Slider from '@react-native-community/slider';
 import { createAudioPlayer, useAudioPlayer } from 'expo-audio';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, IconButton, Text, useTheme } from 'react-native-paper';
+import { Button, IconButton, Text } from 'react-native-paper';
 import Timer from '../../utils/timer';
 
 const NUMERATOR_MIN = 1;
@@ -25,7 +26,7 @@ async function playOverlappingSound(source: number) {
 }
 
 export default function MetronomeScreen() {
-  const { colors } = useTheme();
+  const colors = AppTheme.colors;
   const [numerator, setNumerator] = useState(4);
   const [denominatorIdx, setDenominatorIdx] = useState(1); // default to 4
   const [tempo, setTempo] = useState(120);
@@ -122,7 +123,7 @@ export default function MetronomeScreen() {
 
       {/* Tempo Slider */}
       <View style={styles.tempoContainer}>
-        <Text variant="titleMedium" style={{ color: colors.onSurface }}>Tempo: {tempo} BPM</Text>
+        <Text variant="titleMedium" style={{ color: colors.text }}>Tempo: {tempo} BPM</Text>
         <View style={styles.sliderRow}>
           <IconButton
             icon="minus"
@@ -188,6 +189,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
     gap: 32,
+    backgroundColor: AppTheme.colors.background,
   },
   timeSignatureContainer: {
     alignItems: 'center',
@@ -201,11 +203,12 @@ const styles = StyleSheet.create({
   timeSigNumber: {
     minWidth: 40,
     textAlign: 'center',
+    color: AppTheme.colors.text,
   },
   horizontalBar: {
     height: 2,
     width: 60,
-    backgroundColor: '#888',
+    backgroundColor: AppTheme.colors.icon,
     marginVertical: 2,
     alignSelf: 'center',
   },
@@ -235,6 +238,7 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     borderWidth: 2,
     marginHorizontal: 2,
+    borderColor: AppTheme.colors.primary,
   },
   playButton: {
     marginTop: 24,

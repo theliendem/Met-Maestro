@@ -1,11 +1,10 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { MD3DarkTheme, MD3LightTheme, PaperProvider, Portal } from 'react-native-paper';
 
 const paperLightTheme = {
@@ -33,7 +32,8 @@ const paperDarkTheme = {
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  // Force dark mode for consistent UI
+  const colorScheme = 'dark';
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -44,8 +44,8 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <PaperProvider theme={colorScheme === 'dark' ? paperDarkTheme : paperLightTheme}>
+    <ThemeProvider value={DarkTheme}>
+      <PaperProvider theme={paperDarkTheme}>
         <Portal.Host>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
