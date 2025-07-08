@@ -579,6 +579,12 @@ export default function ShowModeScreen() {
 
   const [settingsVisible, setSettingsVisible] = useState(false);
 
+  // Add these states near the other input states
+  const [numMeasuresSelection, setNumMeasuresSelection] = useState<{start: number, end: number} | undefined>(undefined);
+  const [tempoSelection, setTempoSelection] = useState<{start: number, end: number} | undefined>(undefined);
+  const [numeratorSelection, setNumeratorSelection] = useState<{start: number, end: number} | undefined>(undefined);
+  const [denominatorSelection, setDenominatorSelection] = useState<{start: number, end: number} | undefined>(undefined);
+
   // UI rendering
   return (
     <ThemedView style={styles.container}>
@@ -702,7 +708,9 @@ export default function ShowModeScreen() {
                 style={styles.input}
                 placeholderTextColor="#888"
                 keyboardType="number-pad"
-                onFocus={e => numMeasuresRef.current && numMeasuresRef.current.setNativeProps({ selection: { start: 0, end: numMeasures.length } })}
+                selection={numMeasuresSelection}
+                onFocus={() => setNumMeasuresSelection({ start: 0, end: numMeasures.length })}
+                onSelectionChange={() => setNumMeasuresSelection(undefined)}
               />
             </View>
             <View style={{ marginBottom: 8 }}>
@@ -714,7 +722,9 @@ export default function ShowModeScreen() {
                 style={styles.input}
                 placeholderTextColor="#888"
                 keyboardType="number-pad"
-                onFocus={e => tempoRef.current && tempoRef.current.setNativeProps({ selection: { start: 0, end: tempo.length } })}
+                selection={tempoSelection}
+                onFocus={() => setTempoSelection({ start: 0, end: tempo.length })}
+                onSelectionChange={() => setTempoSelection(undefined)}
               />
             </View>
             <View style={{ flexDirection: 'column', marginBottom: 8 }}>
@@ -728,7 +738,9 @@ export default function ShowModeScreen() {
                     style={styles.input}
                     placeholderTextColor="#888"
                     keyboardType="number-pad"
-                    onFocus={e => numeratorRef.current && numeratorRef.current.setNativeProps({ selection: { start: 0, end: numerator.length } })}
+                    selection={numeratorSelection}
+                    onFocus={() => setNumeratorSelection({ start: 0, end: numerator.length })}
+                    onSelectionChange={() => setNumeratorSelection(undefined)}
                   />
                 </View>
                 <ThemedText type="defaultSemiBold">/</ThemedText>
@@ -740,7 +752,9 @@ export default function ShowModeScreen() {
                     style={styles.input}
                     placeholderTextColor="#888"
                     keyboardType="number-pad"
-                    onFocus={e => denominatorRef.current && denominatorRef.current.setNativeProps({ selection: { start: 0, end: denominator.length } })}
+                    selection={denominatorSelection}
+                    onFocus={() => setDenominatorSelection({ start: 0, end: denominator.length })}
+                    onSelectionChange={() => setDenominatorSelection(undefined)}
                   />
                 </View>
               </View>
@@ -766,6 +780,7 @@ export default function ShowModeScreen() {
               placeholderTextColor="#888"
               keyboardType="default"
               autoFocus
+              onFocus={e => e.target.setNativeProps({ selection: { start: 0, end: renameValue.length } })}
             />
             <Button mode="outlined" style={{ marginTop: 12 }} onPress={async () => {
               // Export logic
@@ -851,7 +866,9 @@ export default function ShowModeScreen() {
                 style={styles.input}
                 placeholderTextColor="#888"
                 keyboardType="number-pad"
-                onFocus={e => tempoRef.current && tempoRef.current.setNativeProps({ selection: { start: 0, end: tempo.length } })}
+                selection={tempoSelection}
+                onFocus={() => setTempoSelection({ start: 0, end: tempo.length })}
+                onSelectionChange={() => setTempoSelection(undefined)}
               />
             </View>
             <View style={{ flexDirection: 'column', marginBottom: 8 }}>
@@ -865,7 +882,9 @@ export default function ShowModeScreen() {
                     style={styles.input}
                     placeholderTextColor="#888"
                     keyboardType="number-pad"
-                    onFocus={e => numeratorRef.current && numeratorRef.current.setNativeProps({ selection: { start: 0, end: numerator.length } })}
+                    selection={numeratorSelection}
+                    onFocus={() => setNumeratorSelection({ start: 0, end: numerator.length })}
+                    onSelectionChange={() => setNumeratorSelection(undefined)}
                   />
                 </View>
                 <ThemedText type="defaultSemiBold">/</ThemedText>
@@ -877,7 +896,9 @@ export default function ShowModeScreen() {
                     style={styles.input}
                     placeholderTextColor="#888"
                     keyboardType="number-pad"
-                    onFocus={e => denominatorRef.current && denominatorRef.current.setNativeProps({ selection: { start: 0, end: denominator.length } })}
+                    selection={denominatorSelection}
+                    onFocus={() => setDenominatorSelection({ start: 0, end: denominator.length })}
+                    onSelectionChange={() => setDenominatorSelection(undefined)}
                   />
                 </View>
               </View>
