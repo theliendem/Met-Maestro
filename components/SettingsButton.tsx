@@ -22,8 +22,8 @@ export const SettingsButton: React.FC<SettingsButtonProps> = ({ onPress, style }
 const styles = StyleSheet.create({
   settingsBtn: {
     position: 'absolute',
-    bottom: 110,
-    right: 30,
+    top: 70,
+    left: 20,
     zIndex: 10,
     opacity: 0.7,
   },

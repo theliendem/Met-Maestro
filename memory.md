@@ -14,6 +14,12 @@
 
 **Settings cog**: The button with the cog icon, which will eventually open the settings screen.
 
+**Tap BPM Button**: The button on the top-left corner of met mode with the hand icon on it. This button lets the user tap a bpm and enter it quickly and easily.
+
+**Subdivision Button**: The button on the top-right corner of met mode with the music note icon. This button will let the user subdivide each beat.
+
+**Sound Button**: The button on the bottom-left corner of met mode with the volume icon. This button will let the user change the sound of the metronome.
+
 ---
 
 *Copy this file into any new chat or project to quickly re-establish shared terminology!* 

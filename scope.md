@@ -226,6 +226,16 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
    - Reference pitch slider (415–466 Hz, default 440).
    - Toggle "Show cents" indicator.
 
+# **Phase 2.1: Fix UI theme and improve UI usability**
+
+## **Step 9:  Unify UI theme across all tabs**
+1. ✅ Make every file use the same external `AppTheme.tsx` file for scalability/global changes.
+2. ✅ Make a global darkmode theme (background color and accent color)
+
+## **Step 10:  Fix UI for Met Mode**
+1. ✅ Restructure met mode to find a general layout that I like.
+2. ✅ Add in three buttons on the corners (tap bpm, subdivision, sound)
+3. Implement tap bpm functionality (see potential ideas #3)
 
 # **Potential future ideas**
 1. Subdivisions per beat

@@ -1,6 +1,7 @@
 import { SettingsButton } from '@/components/SettingsButton';
 import { SettingsModal } from '@/components/SettingsModal';
 import { ThemedView } from '@/components/ThemedView';
+import { useTapBpm } from '@/hooks/useTapBpm';
 import { AppTheme } from '@/theme/AppTheme';
 import { vh, vw } from '@/utils/responsive';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -94,6 +95,9 @@ export default function MetronomeScreen() {
   const [editBpm, setEditBpm] = useState(false);
   const [editBpmValue, setEditBpmValue] = useState('');
 
+  // Tap BPM hook
+  const { isActive: isTapBpmActive, currentBpm: tapBpm, tapCount, startTapBpm, tap, stopTapBpm } = useTapBpm(TEMPO_MIN, TEMPO_MAX);
+
   // Timer ref
   const timerRef = useRef<Timer | null>(null);
 
@@ -103,6 +107,13 @@ export default function MetronomeScreen() {
 
   // Calculate beat duration in ms
   const beatDuration = Math.round(60000 / (tempo * (denominator / 4)));
+
+  // Update tempo when tap BPM detects a valid value
+  useEffect(() => {
+    if (tapBpm && isTapBpmActive) {
+      setTempo(tapBpm);
+    }
+  }, [tapBpm, isTapBpmActive]);
 
   // Start/stop timer
   useEffect(() => {
@@ -168,8 +179,25 @@ export default function MetronomeScreen() {
       {/* Settings Modal */}
       <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
       {/* Tap BPM (A) */}
-      <TouchableOpacity style={styles.topLeftButton} accessibilityLabel="Tap BPM" accessibilityRole="button" activeOpacity={0.8} onPress={() => setComingSoon('Tap BPM')}>
-        <MaterialCommunityIcons name="gesture-tap" size={48} color={colors.icon} />
+      <TouchableOpacity 
+        style={[styles.topLeftButton, isTapBpmActive && { borderColor: colors.primary, backgroundColor: colors.primary + '20' }]} 
+        accessibilityLabel="Tap BPM" 
+        accessibilityRole="button" 
+        activeOpacity={0.8} 
+        onPress={() => {
+          if (isTapBpmActive) {
+            tap();
+          } else {
+            startTapBpm();
+          }
+        }}
+        onLongPress={() => {
+          if (isTapBpmActive) {
+            stopTapBpm();
+          }
+        }}
+      >
+        <MaterialCommunityIcons name="gesture-tap" size={48} color={isTapBpmActive ? colors.primary : colors.icon} />
       </TouchableOpacity>
       {/* Subdivision (B) */}
       <TouchableOpacity style={styles.topRightButton} accessibilityLabel="Subdivision" accessibilityRole="button" activeOpacity={0.8} onPress={() => setComingSoon('Subdivision')}>
@@ -185,7 +213,7 @@ export default function MetronomeScreen() {
               style={{ color: colors.text, fontSize: 48, fontWeight: 'bold', paddingTop: 5 }}
               onPress={() => { setEditBpm(true); setEditBpmValue(String(tempo)); }}
             >
-              {tempo}
+              {isTapBpmActive && tapBpm ? tapBpm : tempo}
             </Text>
             <Text variant="titleMedium" style={{ color: colors.text, fontSize: 20 }}> BPM</Text>
           </View>
@@ -226,7 +254,7 @@ export default function MetronomeScreen() {
           <View style={{ width: vw(80), alignItems: 'center', justifyContent: 'center' }}>
             <MaterialCommunityIcons
               name={isPlaying ? 'stop' : 'play'}
-              size={104}
+              size={124}
               color={colors.primary}
             />
           </View>
