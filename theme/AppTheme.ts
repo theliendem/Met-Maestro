@@ -5,5 +5,7 @@ export const AppTheme = {
     primary: '#0a7ea4',
     text: '#ECEDEE',
     icon: '#9BA1A6',
+    accent: '#BB86FC',
+    orange: '#FFA726',
   },
 }; 

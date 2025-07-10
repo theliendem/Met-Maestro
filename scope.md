@@ -253,6 +253,8 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
 12. Transposition / notation filter (display notes as Bb/Eb instrument view)
 13. Live waveform or spectrum visualiser for tuner screen
 14. Make it so if you tap on the slider bar in the met mode, it'll go there (so you don't have necessarily have to slide)
+15. Expanding modal animation for popups: Implement a reusable modal component (using Reanimated 2) that animates by expanding from the tapped element's position and size to its final modal size/position, with the overlay and modal content fading in together. The animation should be smooth and visually connected to the origin element. This should apply to all modal popups in the app, including: BPM input modal, numerator/denominator input modals, "coming soon" modals for subdivision and sound buttons, and any future modal-based UI. The modal should animate back to the origin element when dismissed. Capture the origin element's layout (position/size) to drive the animation. Overlay should fade in/out in sync with the modal expansion/contraction.
+16. Add a swipe gesture where you can swipe left or right to the next/previous tab, with an animation.
 
 # **NOTES TO SELF (ignore this section if you are an AI model reading this to build this project)**
 ## For submitting new versions to App Store:

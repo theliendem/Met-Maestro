@@ -1,5 +1,3 @@
-import { SettingsButton } from '@/components/SettingsButton';
-import { SettingsModal } from '@/components/SettingsModal';
 import { ThemedView } from '@/components/ThemedView';
 import { useTapBpm } from '@/hooks/useTapBpm';
 import { AppTheme } from '@/theme/AppTheme';
@@ -24,7 +22,7 @@ const ComingSoonModal = ({ visible, title, onClose }: { visible: boolean; title:
       <TouchableOpacity style={{ backgroundColor: '#23242A', borderRadius: 16, padding: 32, width: 320, alignItems: 'center' }} activeOpacity={1} onPress={e => e.stopPropagation()}>
         <Text style={{ color: '#fff', fontSize: 28, fontWeight: 'bold', marginBottom: 12 }}>{title}</Text>
         <Text style={{ color: '#fff', fontSize: 18, marginBottom: 24 }}>This feature is coming soon!</Text>
-        <TouchableOpacity onPress={onClose} style={{ marginTop: 8, backgroundColor: '#4F8EF7', borderRadius: 8, paddingHorizontal: 24, paddingVertical: 10 }}>
+        <TouchableOpacity onPress={onClose} style={{ marginTop: 8, backgroundColor: AppTheme.colors.accent, borderRadius: 8, paddingHorizontal: 24, paddingVertical: 10 }}>
           <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>Close</Text>
         </TouchableOpacity>
       </TouchableOpacity>
@@ -60,7 +58,7 @@ const TimeSigEditModal = ({ visible, value, onChange, onClose, title, min, max }
             onChangeText={setTemp}
             keyboardType="number-pad"
             style={{ backgroundColor: '#181A20', color: '#fff', borderRadius: 8, padding: 12, fontSize: 28, width: 120, textAlign: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#333' }}
-            selectionColor="#4F8EF7"
+            selectionColor={AppTheme.colors.accent}
             autoFocus
             selection={selection}
             onSelectionChange={() => selection && setSelection(undefined)}
@@ -70,7 +68,7 @@ const TimeSigEditModal = ({ visible, value, onChange, onClose, title, min, max }
             <TouchableOpacity onPress={onClose} style={{ backgroundColor: '#888', borderRadius: 8, paddingHorizontal: 24, paddingVertical: 10, marginRight: 8 }}>
               <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => { if (isValid) { onChange(temp); onClose(); } }} style={{ backgroundColor: isValid ? '#4F8EF7' : '#888', borderRadius: 8, paddingHorizontal: 24, paddingVertical: 10 }} disabled={!isValid}>
+            <TouchableOpacity onPress={() => { if (isValid) { onChange(temp); onClose(); } }} style={{ backgroundColor: isValid ? AppTheme.colors.accent : '#888', borderRadius: 8, paddingHorizontal: 24, paddingVertical: 10 }} disabled={!isValid}>
               <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>Save</Text>
             </TouchableOpacity>
           </View>
@@ -88,7 +86,6 @@ export default function MetronomeScreen() {
   const [tempo, setTempo] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentBeat, setCurrentBeat] = useState(0); // 0-based
-  const [settingsVisible, setSettingsVisible] = useState(false);
   const [comingSoon, setComingSoon] = useState<null | 'Tap BPM' | 'Subdivision' | 'Sound'>(null);
   const [editTimeSig, setEditTimeSig] = useState<null | 'numerator' | 'denominator'>(null);
   const [editValue, setEditValue] = useState('');
@@ -174,10 +171,6 @@ export default function MetronomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      {/* Settings gear */}
-      <SettingsButton onPress={() => setSettingsVisible(true)} />
-      {/* Settings Modal */}
-      <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
       {/* Tap BPM (A) */}
       <TouchableOpacity 
         style={[styles.topLeftButton, isTapBpmActive && { borderColor: colors.primary, backgroundColor: colors.primary + '20' }]} 
@@ -232,9 +225,9 @@ export default function MetronomeScreen() {
               onValueChange={setTempo}
               step={1}
               tapToSeek={true}
-              minimumTrackTintColor={colors.primary}
+              minimumTrackTintColor={colors.accent}
               maximumTrackTintColor={colors.surface}
-              thumbTintColor={colors.primary}
+              thumbTintColor={colors.accent}
             />
             <IconButton
               icon="plus"
@@ -251,13 +244,11 @@ export default function MetronomeScreen() {
           accessibilityLabel={isPlaying ? 'Stop' : 'Play'}
           activeOpacity={0.85}
         >
-          <View style={{ width: vw(80), alignItems: 'center', justifyContent: 'center' }}>
-            <MaterialCommunityIcons
-              name={isPlaying ? 'stop' : 'play'}
-              size={124}
-              color={colors.primary}
-            />
-          </View>
+          <MaterialCommunityIcons
+            name={isPlaying ? 'stop' : 'play'}
+            size={vw(15)}
+            color="#fff"
+          />
         </TouchableOpacity>
         <View style={[styles.tempoBarContainer, { gap: circleGap }]}> 
           {tempoBar.map((_, i) => (
@@ -268,8 +259,8 @@ export default function MetronomeScreen() {
                 width: circleSize,
                 height: circleSize,
                 borderRadius: circleSize / 2,
-                backgroundColor: i === currentBeat ? colors.primary : colors.surface,
-                borderColor: colors.primary,
+                backgroundColor: i === currentBeat ? colors.accent : colors.surface,
+                borderColor: colors.accent,
                 opacity: i === currentBeat ? 1 : 0.4,
                 marginHorizontal: 0,
               }}
@@ -431,15 +422,22 @@ const styles = StyleSheet.create({
     borderColor: AppTheme.colors.primary,
   },
   playButton: {
-    marginTop: vh(1.5),
-    width: '100%',
-    alignSelf: 'center',
-    height: vh(12),
-    borderRadius: vw(2),
-    justifyContent: 'center',
+    width: vw(28),
+    height: vw(28),
+    borderRadius: vw(14),
+    backgroundColor: AppTheme.colors.background,
+    borderWidth: 2,
+    borderColor: '#fff',
     alignItems: 'center',
-    paddingHorizontal: vw(2),
-    // inherit background
+    justifyContent: 'center',
+    alignSelf: 'center',
+    elevation: 8,
+    shadowColor: AppTheme.colors.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.65,
+    shadowRadius: 8,
+    marginTop: vh(3),
+    marginBottom: vh(3),
   },
   // Absolute positioned buttons / sections
   topLeftButton: {
@@ -450,7 +448,12 @@ const styles = StyleSheet.create({
     borderRadius: vw(8),
     borderWidth: 2,
     borderColor: AppTheme.colors.icon,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(21,23,24,0.92)',
+    shadowColor: AppTheme.colors.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
   },
   topRightButton: {
     position: 'absolute',
@@ -460,7 +463,12 @@ const styles = StyleSheet.create({
     borderRadius: vw(8),
     borderWidth: 2,
     borderColor: AppTheme.colors.icon,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(21,23,24,0.92)',
+    shadowColor: AppTheme.colors.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
   },
   bottomLeftButton: {
     position: 'absolute',
@@ -470,7 +478,12 @@ const styles = StyleSheet.create({
     borderRadius: vw(8),
     borderWidth: 2,
     borderColor: AppTheme.colors.icon,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(21,23,24,0.92)',
+    shadowColor: AppTheme.colors.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
   },
   timeSignatureContainerAbsolute: {
     position: 'absolute',
