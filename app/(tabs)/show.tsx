@@ -157,7 +157,7 @@ export default function ShowModeScreen() {
       };
       snapshotTakenRef.current = true;
     }
-  }, [shows, selectedShow]);
+  }, [shows, selectedShow, showAddMeasure, renameValue, numMeasures, tempo, numerator, denominator, condensedView]);
 
   // Helper to restore all snapshotted state values
   const restoreSnapshot = () => {
@@ -533,6 +533,7 @@ export default function ShowModeScreen() {
       let importedData: any;
       try {
         importedData = JSON.parse(fileContent);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         setSnackbarMessage('Invalid JSON file format.');
         setSnackbarVisible(true);

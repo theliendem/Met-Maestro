@@ -226,7 +226,7 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
    - Reference pitch slider (415–466 Hz, default 440).
    - Toggle "Show cents" indicator.
 
-# **Phase 2.1: Fix UI theme and improve UI usability**
+# **Phase 3: Fix UI theme and improve UI usability**
 
 ## **Step 9:  Unify UI theme across all tabs**
 1. ✅ Make every file use the same external `AppTheme.tsx` file for scalability/global changes.
@@ -236,6 +236,87 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
 1. ✅ Restructure met mode to find a general layout that I like.
 2. ✅ Add in three buttons on the corners (tap bpm, subdivision, sound)
 3. Implement tap bpm functionality (see potential ideas #3)
+
+# **Phase 4: Migrate Metronome Audio to `react-native-sound`**
+
+**Goal:** Replace `expo-audio` with `react-native-sound` in `app/(tabs)/metronome.tsx` and `app/(tabs)/show.tsx` to ensure reliable overlapping clicks.
+
+## **Step 11: Setup and Basic Replacement (`app/(tabs)/metronome.tsx` First)**
+1.  **Ensure `react-native-sound` is Fully Linked (Prerequisite Check):**
+    *   Run `cd ios && pod install && cd ..` in the terminal to ensure native dependencies are installed.
+2.  **Modify `app/(tabs)/metronome.tsx`:**
+    *   Remove `expo-audio` import: `import { useAudioPlayer } from 'expo-audio';`
+    *   Add `react-native-sound` import: `import Sound from 'react-native-sound';`
+    *   Inside `MetronomeScreen` component, declare `useRef` for Sound Pools and Indexes:
+        ```typescript
+        const hiSounds = useRef<Sound[]>([]);
+        const loSounds = useRef<Sound[]>([]);
+        const currentHiSoundIdx = useRef(0);
+        const currentLoSoundIdx = useRef(0);
+        const SOUND_POOL_SIZE = 3; // Number of overlapping sound instances (can be adjusted)
+        ```
+    *   Implement Sound Loading and Release with `useEffect` (runs once on mount):
+        ```typescript
+        useEffect(() => {
+          Sound.setCategory('Playback');
+          const loadSoundPool = (
+            soundPath: any, 
+            soundArrayRef: React.MutableRefObject<Sound[]>
+          ) => {
+            for (let i = 0; i < SOUND_POOL_SIZE; i++) {
+              const sound = new Sound(soundPath, (error) => {
+                if (error) {
+                  console.error(`Failed to load sound ${soundPath}:`, error);
+                  return;
+                }
+                soundArrayRef.current.push(sound);
+              });
+            }
+          };
+          loadSoundPool(require('@/assets/sounds/click_hi.wav'), hiSounds);
+          loadSoundPool(require('@/assets/sounds/click_lo.wav'), loSounds);
+          return () => {
+            hiSounds.current.forEach(s => { if (s.isLoaded()) s.release(); });
+            loSounds.current.forEach(s => { if (s.isLoaded()) s.release(); });
+            hiSounds.current = [];
+            loSounds.current = [];
+          };
+        }, []);
+        ```
+    *   Create a `playSoundFromPool` Helper Function (using `useCallback`):
+        ```typescript
+        const playSoundFromPool = useCallback((
+          soundArrayRef: React.MutableRefObject<Sound[]>, 
+          currentIndexRef: React.MutableRefObject<number>
+        ) => {
+          if (soundArrayRef.current.length > 0) {
+            const sound = soundArrayRef.current[currentIndexRef.current];
+            if (sound.isLoaded()) {
+              sound.stop(() => {
+                sound.play((success) => {
+                  if (!success) { console.error('Sound playback failed.'); }
+                });
+              });
+              currentIndexRef.current = (currentIndexRef.current + 1) % SOUND_POOL_SIZE;
+            } else { console.warn('Attempted to play unloaded sound. Ensure sounds are fully loaded.'); }
+          } else { console.warn('Sound pool is empty. Sounds may not have loaded yet.'); }
+        }, []);
+        ```
+    *   Update the Metronome's Main `useEffect` for Playback:
+        *   Remove `hiPlayer` and `loPlayer` from dependencies.
+        *   Replace `hiPlayer.seekTo(0); setTimeout(() => hiPlayer.play(), 1);` with `playSoundFromPool(hiSounds, currentHiSoundIdx);`
+        *   Replace `loPlayer.seekTo(0); setTimeout(() => loPlayer.play(), 1);` with `playSoundFromPool(loSounds, currentLoSoundIdx);`
+
+## **Step 12: Apply to `app/(tabs)/show.tsx` and Refinements**
+1.  **Modify `app/(tabs)/show.tsx`:**
+    *   Repeat modifications from Step 11 for `app/(tabs)/show.tsx` (remove `expo-audio` import, add `react-native-sound` import, declare refs, add sound loading/release `useEffect`, create `playSoundFromPool`, update playback logic to use `playSoundFromPool`).
+2.  **Create a Reusable Sound Hook (`hooks/useMetronomeSounds.ts`) (Recommended):**
+    *   Create `hooks/useMetronomeSounds.ts`.
+    *   Move the `Sound` import, all sound-related `useRef` declarations, the sound loading/release `useEffect`, and the `playSoundFromPool` function into this new hook.
+    *   The hook should return functions like `playHiClick` and `playLoClick`.
+    *   Replace duplicated sound logic in `metronome.tsx` and `show.tsx` with calls to this single hook.
+
+---
 
 # **Potential future ideas**
 1. Subdivisions per beat
@@ -256,7 +337,9 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
 15. Expanding modal animation for popups: Implement a reusable modal component (using Reanimated 2) that animates by expanding from the tapped element's position and size to its final modal size/position, with the overlay and modal content fading in together. The animation should be smooth and visually connected to the origin element. This should apply to all modal popups in the app, including: BPM input modal, numerator/denominator input modals, "coming soon" modals for subdivision and sound buttons, and any future modal-based UI. The modal should animate back to the origin element when dismissed. Capture the origin element's layout (position/size) to drive the animation. Overlay should fade in/out in sync with the modal expansion/contraction.
 16. Add a swipe gesture where you can swipe left or right to the next/previous tab, with an animation.
 
-# **NOTES TO SELF (ignore this section if you are an AI model reading this to build this project)**
+---
+
+**NOTES TO SELF (ignore this section if you are an AI model reading this to build this project)**
 ## For submitting new versions to App Store:
 First increment version number and ios.buildNumber in app.json. THEN go into ios/MetMaestro/Info.plist and change the version and Bundle Version (VERY IMPORTANT!!! It will not work if you don't do both). THEN go into eas.json and make sure that build.development.simulator is false or does not exist. Then do `eas build -p ios --profile production` then `eas submit -p ios --latest`
 ## For building to a local simulator:

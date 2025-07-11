@@ -63,7 +63,7 @@ export default function TunerScreen() {
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  }, [tuner.cents, showDash, lastDetectedCents]);
+  }, [tuner.cents, showDash, lastDetectedCents, needleAnim]);
 
   // --- Tuner UI ---
   const detected = tuner.note !== null && tuner.freq !== null && tuner.cents !== null && !tuner.error;

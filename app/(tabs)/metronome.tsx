@@ -93,7 +93,7 @@ export default function MetronomeScreen() {
   const [editBpmValue, setEditBpmValue] = useState('');
 
   // Tap BPM hook
-  const { isActive: isTapBpmActive, currentBpm: tapBpm, tapCount, startTapBpm, tap, stopTapBpm } = useTapBpm(TEMPO_MIN, TEMPO_MAX);
+  const { isActive: isTapBpmActive, currentBpm: tapBpm, startTapBpm, tap, stopTapBpm } = useTapBpm(TEMPO_MIN, TEMPO_MAX);
 
   // Timer ref
   const timerRef = useRef<Timer | null>(null);
