@@ -1,11 +1,11 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useMetronomeSounds } from '@/hooks/useMetronomeSounds';
 import { AppTheme } from '@/theme/AppTheme';
 import { vh, vw } from '@/utils/responsive';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAudioPlayer } from 'expo-audio';
 import { BlurView } from 'expo-blur';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, Keyboard, Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { Button, Snackbar, Switch } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { activateAudioSession, testAudioSession } from '../../utils/audioSession';
 import Timer from '../../utils/timer';
 
 // Define interfaces for better type safety
@@ -183,9 +184,15 @@ export default function ShowModeScreen() {
     restoreSnapshot();
   };
 
-  // Audio players
-  const hiPlayer = useAudioPlayer(require('@/assets/sounds/click_hi.wav'));
-  const loPlayer = useAudioPlayer(require('@/assets/sounds/click_lo.wav'));
+  // Metronome sounds hook
+  const { playHiClick, playLoClick } = useMetronomeSounds();
+
+  // Configure audio session to play through silent mode
+  useEffect(() => {
+    activateAudioSession();
+    // Test the audio session configuration
+    testAudioSession();
+  }, []);
 
   // Load shows from storage on mount
   useEffect(() => {
@@ -324,6 +331,10 @@ export default function ShowModeScreen() {
   // Start playback (count-in, then show)
   const handlePlay = () => {
     if (!currentShow || !currentShow.measures.length) return;
+    
+    // Ensure audio session is activated before playing
+    activateAudioSession();
+    
     // Always reset refs on play
     measureIdxRef.current = 0;
     beatIdxRef.current = 0;
@@ -336,8 +347,7 @@ export default function ShowModeScreen() {
     const countInBeatDuration = getCountInBeatDuration(tempo);
     let countInBeat = 0;
     // Play the first count-in beat immediately (always hi click)
-    hiPlayer.seekTo(0);
-    setTimeout(() => hiPlayer.play(), 1);
+    playHiClick();
     if (timerRef.current) {
       timerRef.current.stop();
       timerRef.current = null;
@@ -347,8 +357,7 @@ export default function ShowModeScreen() {
       setCurrentBeat(countInBeat);
       if (countInBeat < 4) {
         // Play hi click for every count-in beat
-        hiPlayer.seekTo(0);
-        setTimeout(() => hiPlayer.play(), 1);
+        playHiClick();
       }
       if (countInBeat === 4) {
         setIsCountIn(false);
@@ -368,6 +377,9 @@ export default function ShowModeScreen() {
   // Start show playback using a single Timer instance that adjusts interval dynamically
   function startShowPlayback() {
     if (!currentShow || !currentShow.measures.length) return;
+
+    // Ensure audio session is activated before playing
+    activateAudioSession();
 
     // Calculate total number of measures at the start
     const totalMeasures = currentShow.measures.length;
@@ -391,8 +403,7 @@ export default function ShowModeScreen() {
     // --- Play first beat immediately ---
     setCurrentMeasureIdx(0);
     setCurrentBeat(0);
-    hiPlayer.seekTo(0);
-    setTimeout(() => hiPlayer.play(), 1);
+    playHiClick();
 
     // Timer callback for every subsequent beat
     const onTick = () => {
@@ -436,11 +447,9 @@ export default function ShowModeScreen() {
 
       // Play sound for this beat
       if (beatIdxRef.current === 0) {
-        hiPlayer.seekTo(0);
-        setTimeout(() => hiPlayer.play(), 1);
+        playHiClick();
       } else {
-        loPlayer.seekTo(0);
-        setTimeout(() => loPlayer.play(), 1);
+        playLoClick();
       }
 
       // Update timer interval for next beat **before** Timer schedules the next round

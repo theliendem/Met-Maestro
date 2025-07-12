@@ -2,10 +2,12 @@ import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { Colors } from '@/constants/Colors';
 import { MD3DarkTheme, MD3LightTheme, PaperProvider, Portal } from 'react-native-paper';
+import { initializeAudioSession } from '../utils/audioSession';
 
 const paperLightTheme = {
   ...MD3LightTheme,
@@ -37,6 +39,11 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+
+  // Initialize audio session when app starts
+  useEffect(() => {
+    initializeAudioSession();
+  }, []);
 
   if (!loaded) {
     // Async font loading only occurs in development.

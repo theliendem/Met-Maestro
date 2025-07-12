@@ -1,13 +1,14 @@
 import { ThemedView } from '@/components/ThemedView';
+import { useMetronomeSounds } from '@/hooks/useMetronomeSounds';
 import { useTapBpm } from '@/hooks/useTapBpm';
 import { AppTheme } from '@/theme/AppTheme';
 import { vh, vw } from '@/utils/responsive';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
-import { useAudioPlayer } from 'expo-audio';
 import { useEffect, useRef, useState } from 'react';
 import { Modal, TextInput as RNTextInput, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
+import { activateAudioSession, testAudioSession } from '../../utils/audioSession';
 import Timer from '../../utils/timer';
 
 const NUMERATOR_MIN = 1;
@@ -98,9 +99,15 @@ export default function MetronomeScreen() {
   // Timer ref
   const timerRef = useRef<Timer | null>(null);
 
-  // Audio players
-  const hiPlayer = useAudioPlayer(require('@/assets/sounds/click_hi.wav'));
-  const loPlayer = useAudioPlayer(require('@/assets/sounds/click_lo.wav'));
+  // Metronome sounds hook
+  const { playHiClick, playLoClick } = useMetronomeSounds();
+
+  // Configure audio session to play through silent mode
+  useEffect(() => {
+    activateAudioSession();
+    // Test the audio session configuration
+    testAudioSession();
+  }, []);
 
   // Calculate beat duration in ms
   const beatDuration = Math.round(60000 / (tempo * (denominator / 4)));
@@ -120,9 +127,11 @@ export default function MetronomeScreen() {
       return;
     }
     
+    // Ensure audio session is activated before playing
+    activateAudioSession();
+    
     // Play the first beat immediately when starting
-    hiPlayer.seekTo(0);
-    setTimeout(() => hiPlayer.play(), 1);
+    playHiClick();
     setCurrentBeat(0);
     
     // Timer callback
@@ -131,11 +140,9 @@ export default function MetronomeScreen() {
         const nextBeat = (prev + 1) % numerator;
         // Play sound (downbeat = 0)
         if (nextBeat === 0) {
-          hiPlayer.seekTo(0);
-          setTimeout(() => hiPlayer.play(), 1);
+          playHiClick();
         } else {
-          loPlayer.seekTo(0);
-          setTimeout(() => loPlayer.play(), 1);
+          playLoClick();
         }
         return nextBeat;
       });
@@ -147,7 +154,7 @@ export default function MetronomeScreen() {
       timerRef.current?.stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlaying, numerator, denominator, tempo, hiPlayer, loPlayer]);
+  }, [isPlaying, numerator, denominator, tempo, playHiClick, playLoClick]);
 
   // Tempo bar segments
   const tempoBar = Array.from({ length: numerator });

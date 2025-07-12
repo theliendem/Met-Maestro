@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		10A2FBDA2E22231100378593 /* click_hi.wav in Resources */ = {isa = PBXBuildFile; fileRef = 10A2FBD82E22231100378593 /* click_hi.wav */; };
+		10A2FBDB2E22231100378593 /* click_lo.wav in Resources */ = {isa = PBXBuildFile; fileRef = 10A2FBD92E22231100378593 /* click_lo.wav */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		1A1A01E1C666F907D82C278E /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A623947BF50037C909F93356 /* ExpoModulesProvider.swift */; };
 		21D32D3603E9888110099612 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B39A4C25C5356DCEBC09703D /* PrivacyInfo.xcprivacy */; };
@@ -17,13 +19,15 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		10A2FBD82E22231100378593 /* click_hi.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = click_hi.wav; sourceTree = "<group>"; };
+		10A2FBD92E22231100378593 /* click_lo.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = click_lo.wav; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* MetMaestro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MetMaestro.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MetMaestro/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = MetMaestro/Info.plist; sourceTree = "<group>"; };
 		7E43CA71576F9DA7481191F9 /* Pods-MetMaestro.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MetMaestro.debug.xcconfig"; path = "Target Support Files/Pods-MetMaestro/Pods-MetMaestro.debug.xcconfig"; sourceTree = "<group>"; };
 		A623947BF50037C909F93356 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-MetMaestro/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = MetMaestro/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B39A4C25C5356DCEBC09703D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = MetMaestro/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B39A4C25C5356DCEBC09703D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = MetMaestro/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		D29D14ACAA936325E8079D0A /* libPods-MetMaestro.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MetMaestro.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E4809E38CE523B433A1A2151 /* Pods-MetMaestro.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MetMaestro.release.xcconfig"; path = "Target Support Files/Pods-MetMaestro/Pods-MetMaestro.release.xcconfig"; sourceTree = "<group>"; };
@@ -73,7 +77,6 @@
 				7E43CA71576F9DA7481191F9 /* Pods-MetMaestro.debug.xcconfig */,
 				E4809E38CE523B433A1A2151 /* Pods-MetMaestro.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -101,6 +104,8 @@
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				37CF26E48E05D3F7785C560F /* Pods */,
 				7DD7E14251F96EC7CD0B2335 /* ExpoModulesProviders */,
+				10A2FBD82E22231100378593 /* click_hi.wav */,
+				10A2FBD92E22231100378593 /* click_lo.wav */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -194,6 +199,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
+				10A2FBDA2E22231100378593 /* click_hi.wav in Resources */,
+				10A2FBDB2E22231100378593 /* click_lo.wav in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
 				21D32D3603E9888110099612 /* PrivacyInfo.xcprivacy in Resources */,
@@ -457,10 +464,7 @@
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					" ",
-				);
+				OTHER_LDFLAGS = "$(inherited)  ";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
@@ -515,10 +519,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					" ",
-				);
+				OTHER_LDFLAGS = "$(inherited)  ";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				USE_HERMES = true;
