@@ -1,209 +1,261 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-	<dict>
-		<key>
+  <dict>
+    <key>
 			CADisableMinimumFrameDurationOnPhone
 		</key>
-		<true />
-		<key>
+    <true/>
+    <key>
 			CFBundleDevelopmentRegion
 		</key>
-		<string>
+    <string>
 			$(DEVELOPMENT_LANGUAGE)
 		</string>
-		<key>
+    <key>
 			CFBundleDisplayName
 		</key>
-		<string>
+    <string>
 			Met Maestro
 		</string>
-		<key>
+    <key>
 			CFBundleExecutable
 		</key>
-		<string>
+    <string>
 			$(EXECUTABLE_NAME)
 		</string>
-		<key>
+    <key>
 			CFBundleIdentifier
 		</key>
-		<string>
+    <string>
 			$(PRODUCT_BUNDLE_IDENTIFIER)
 		</string>
-		<key>
+    <key>
 			CFBundleInfoDictionaryVersion
 		</key>
-		<string>
+    <string>
 			6.0
 		</string>
-		<key>
+    <key>
 			CFBundleName
 		</key>
-		<string>
+    <string>
 			$(PRODUCT_NAME)
 		</string>
-		<key>
+    <key>
 			CFBundlePackageType
 		</key>
-		<string>
+    <string>
 			$(PRODUCT_BUNDLE_PACKAGE_TYPE)
 		</string>
-		<key>
+    <key>
 			CFBundleShortVersionString
 		</key>
-		<string>
+    <string>
 			2.0.0
 		</string>
-		<key>
+    <key>
 			CFBundleSignature
 		</key>
-		<string>
+    <string>
 			????
 		</string>
-		<key>
+    <key>
 			CFBundleURLTypes
 		</key>
-		<array>
-			<dict>
-				<key>
+    <array>
+      <dict>
+        <key>
 					CFBundleURLSchemes
 				</key>
-				<array>
-					<string>
+        <array>
+          <string>
 						metmaestro
 					</string>
-					<string>
+          <string>
 						com.theliendem.metmaestro
 					</string>
-				</array>
-			</dict>
-			<dict>
-				<key>
+        </array>
+      </dict>
+      <dict>
+        <key>
 					CFBundleURLSchemes
 				</key>
-				<array>
-					<string>
+        <array>
+          <string>
 						exp+met-maestro
 					</string>
-				</array>
-			</dict>
-		</array>
-		<key>
+        </array>
+      </dict>
+    </array>
+    <key>
 			CFBundleVersion
 		</key>
-		<string>
+    <string>
 			7
 		</string>
-		<key>
+    <key>
 			ITSAppUsesNonExemptEncryption
 		</key>
-		<false />
-		<key>
+    <false/>
+    <key>
 			LSMinimumSystemVersion
 		</key>
-		<string>
+    <string>
 			12.0
 		</string>
-		<key>
+    <key>
 			LSRequiresIPhoneOS
 		</key>
-		<true />
-		<key>
+    <true/>
+    <key>
 			NSAppTransportSecurity
 		</key>
-		<dict>
-			<key>
+    <dict>
+      <key>
 				NSAllowsArbitraryLoads
 			</key>
-			<false />
-			<key>
+      <false/>
+      <key>
 				NSAllowsLocalNetworking
 			</key>
-			<true />
-		</dict>
-		<key>
+      <true/>
+    </dict>
+    <key>
 			NSMicrophoneUsageDescription
 		</key>
-		<string>
+    <string>
 			Allow $(PRODUCT_NAME) to access your microphone
 		</string>
-		<key>
-			UIBackgroundModes
-		</key>
-		<array>
-			<string>
-				audio
-			</string>
-		</array>
-		<key>
+    <key>
 			NSUserActivityTypes
 		</key>
-		<array>
-			<string>
+    <array>
+      <string>
 				$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route
 			</string>
-		</array>
-		<key>
+    </array>
+    <key>
+			UIBackgroundModes
+		</key>
+    <array>
+      <string>
+				audio
+			</string>
+    </array>
+    <key>
 			UILaunchStoryboardName
 		</key>
-		<string>
+    <string>
 			SplashScreen
 		</string>
-		<key>
+    <key>
 			UIRequiredDeviceCapabilities
 		</key>
-		<array>
-			<string>
+    <array>
+      <string>
 				arm64
 			</string>
-		</array>
-		<key>
+    </array>
+    <key>
 			UIRequiresFullScreen
 		</key>
-		<false />
-		<key>
+    <false/>
+    <key>
 			UIStatusBarStyle
 		</key>
-		<string>
+    <string>
 			UIStatusBarStyleDefault
 		</string>
-		<key>
+    <key>
 			UISupportedInterfaceOrientations
 		</key>
-		<array>
-			<string>
+    <array>
+      <string>
 				UIInterfaceOrientationPortrait
 			</string>
-			<string>
+      <string>
 				UIInterfaceOrientationPortraitUpsideDown
 			</string>
-		</array>
-		<key>
+    </array>
+    <key>
 			UISupportedInterfaceOrientations~ipad
 		</key>
-		<array>
-			<string>
+    <array>
+      <string>
 				UIInterfaceOrientationPortrait
 			</string>
-			<string>
+      <string>
 				UIInterfaceOrientationPortraitUpsideDown
 			</string>
-			<string>
+      <string>
 				UIInterfaceOrientationLandscapeLeft
 			</string>
-			<string>
+      <string>
 				UIInterfaceOrientationLandscapeRight
 			</string>
-		</array>
-		<key>
+    </array>
+    <key>
 			UIUserInterfaceStyle
 		</key>
-		<string>
+    <string>
 			Automatic
 		</string>
-		<key>
+    <key>
 			UIViewControllerBasedStatusBarAppearance
 		</key>
-		<false />
-	</dict>
+    <false/>
+    <key>CFBundleDisplayName</key>
+    <string>Met Maestro</string>
+    <key>CFBundleShortVersionString</key>
+    <string>2.0.0</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>metmaestro</string>
+          <string>com.theliendem.metmaestro</string>
+        </array>
+      </dict>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>exp+met-maestro</string>
+        </array>
+      </dict>
+    </array>
+    <key>CFBundleVersion</key>
+    <string>6</string>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your microphone</string>
+    <key>NSUserActivityTypes</key>
+    <array>
+      <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
+    </array>
+    <key>UIBackgroundModes</key>
+    <array>
+      <string>audio</string>
+    </array>
+    <key>UILaunchStoryboardName</key>
+    <string>SplashScreen</string>
+    <key>UIRequiresFullScreen</key>
+    <false/>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+      <string>UIInterfaceOrientationPortrait</string>
+      <string>UIInterfaceOrientationPortraitUpsideDown</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+      <string>UIInterfaceOrientationPortrait</string>
+      <string>UIInterfaceOrientationPortraitUpsideDown</string>
+      <string>UIInterfaceOrientationLandscapeLeft</string>
+      <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UIUserInterfaceStyle</key>
+    <string>Automatic</string>
+  </dict>
 </plist>

@@ -10,7 +10,7 @@ import { BlurView } from 'expo-blur';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, Keyboard, Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { Button, Snackbar, Switch } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -119,7 +119,6 @@ export default function ShowModeScreen() {
   const denominatorRef = useRef<TextInput>(null);
   const [showEdit, setShowEdit] = useState(false);
   const [editShowId, setEditShowId] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   // Snackbar state
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>('');
@@ -222,15 +221,52 @@ export default function ShowModeScreen() {
   // Get current show
   const currentShow = shows.find(s => s.id === selectedShow);
 
+  // Sync draggable state with current show
+  useEffect(() => {
+    // No logging needed
+  }, [currentShow, selectedShow, shows.length]);
+
   // Add measures
   const handleAddMeasures = () => {
     if (!currentShow) return;
+    
+    // Validate inputs
+    const numMeasuresInt = parseInt(numMeasures || '1', 10);
+    const tempoInt = parseInt(tempo || '120', 10);
+    const numeratorInt = parseInt(numerator || '4', 10);
+    const denominatorInt = parseInt(denominator || '4', 10);
+    
+    // Check for invalid inputs
+    if (isNaN(numMeasuresInt) || numMeasuresInt < 1 || numMeasuresInt > 500) {
+      setSnackbarMessage('Number of measures must be between 1 and 500');
+      setSnackbarVisible(true);
+      return;
+    }
+    
+    if (isNaN(tempoInt) || tempoInt < 40 || tempoInt > 300) {
+      setSnackbarMessage('Tempo must be between 40 and 300 BPM');
+      setSnackbarVisible(true);
+      return;
+    }
+    
+    if (isNaN(numeratorInt) || numeratorInt < 1 || numeratorInt > 31) {
+      setSnackbarMessage('Numerator must be between 1 and 31');
+      setSnackbarVisible(true);
+      return;
+    }
+    
+    if (isNaN(denominatorInt) || denominatorInt < 1 || denominatorInt > 32) {
+      setSnackbarMessage('Denominator must be between 1 and 32');
+      setSnackbarVisible(true);
+      return;
+    }
+    
     const newMeasures: Measure[] = [];
-    for (let i = 0; i < parseInt(numMeasures || '1', 10); i++) {
+    for (let i = 0; i < numMeasuresInt; i++) {
       newMeasures.push({
         id: Date.now().toString() + Math.random(),
-        timeSignature: { numerator: parseInt(numerator, 10), denominator: parseInt(denominator, 10) },
-        tempo: parseInt(tempo, 10),
+        timeSignature: { numerator: numeratorInt, denominator: denominatorInt },
+        tempo: tempoInt,
       });
     }
     setShows((prevShows) => prevShows.map((show) =>
@@ -243,6 +279,10 @@ export default function ShowModeScreen() {
     setTempo('120');
     setNumerator('4');
     setDenominator('4');
+    
+    // Show success message
+    setSnackbarMessage(`Added ${numMeasuresInt} measure${numMeasuresInt === 1 ? '' : 's'}`);
+    setSnackbarVisible(true);
   };
 
   // Delete measure
@@ -263,15 +303,6 @@ export default function ShowModeScreen() {
     // Show snackbar
     setSnackbarMessage(`${name} has been created!`);
     setSnackbarVisible(true);
-  };
-
-  // Delete show
-  const handleDeleteShow = (id: string | null) => {
-    if (!id) return;
-    setShows((prevShows) => prevShows.filter((show) => show.id !== id));
-    if (selectedShow === id) {
-      setSelectedShow(shows.filter(s => s.id !== id)[0]?.id as string | null);
-    }
   };
 
   // Rename show
@@ -626,6 +657,8 @@ export default function ShowModeScreen() {
 
   // --- LOGIC: Handler to open edit modal for condensed group ---
   const handleEditCondensedGroup = (group: CondensedMeasureGroup) => {
+    if (!currentShow) return;
+    
     setEditCondensedGroup(group);
     setNumMeasures(group.count.toString());
     setTempo(group.tempo.toString());
@@ -637,6 +670,31 @@ export default function ShowModeScreen() {
   // --- LOGIC: Handler to save edits to condensed group ---
   const handleSaveCondensedGroup = () => {
     if (!editCondensedGroup || !currentShow) return;
+    
+    // Validate inputs
+    const tempoInt = parseInt(tempo || '120', 10);
+    const numeratorInt = parseInt(numerator || '4', 10);
+    const denominatorInt = parseInt(denominator || '4', 10);
+    
+    // Check for invalid inputs
+    if (isNaN(tempoInt) || tempoInt < 40 || tempoInt > 300) {
+      setSnackbarMessage('Tempo must be between 40 and 300 BPM');
+      setSnackbarVisible(true);
+      return;
+    }
+    
+    if (isNaN(numeratorInt) || numeratorInt < 1 || numeratorInt > 31) {
+      setSnackbarMessage('Numerator must be between 1 and 31');
+      setSnackbarVisible(true);
+      return;
+    }
+    
+    if (isNaN(denominatorInt) || denominatorInt < 1 || denominatorInt > 32) {
+      setSnackbarMessage('Denominator must be between 1 and 32');
+      setSnackbarVisible(true);
+      return;
+    }
+    
     setShows((prevShows) => prevShows.map((show) =>
       show.id === selectedShow
         ? {
@@ -646,10 +704,10 @@ export default function ShowModeScreen() {
                 ? {
                     ...m,
                     timeSignature: {
-                      numerator: parseInt(numerator, 10),
-                      denominator: parseInt(denominator, 10),
+                      numerator: numeratorInt,
+                      denominator: denominatorInt,
                     },
-                    tempo: parseInt(tempo, 10),
+                    tempo: tempoInt,
                   }
                 : m
             ),
@@ -658,6 +716,53 @@ export default function ShowModeScreen() {
     ));
     setShowEditCondensed(false);
     setEditCondensedGroup(null);
+    
+    // Show success message
+    setSnackbarMessage('Measures updated successfully');
+    setSnackbarVisible(true);
+  };
+
+  // Simple reorder function for measures
+  const reorderMeasures = (fromIndex: number, toIndex: number) => {
+    if (!currentShow || !selectedShow) return;
+    
+    const newMeasures = [...currentShow.measures];
+    const [movedItem] = newMeasures.splice(fromIndex, 1);
+    newMeasures.splice(toIndex, 0, movedItem);
+    
+    setShows((prevShows) => prevShows.map((show) =>
+      show.id === selectedShow
+        ? { ...show, measures: newMeasures }
+        : show
+    ));
+  };
+
+  // Simple reorder function for condensed groups
+  const reorderCondensedGroups = (fromIndex: number, toIndex: number) => {
+    if (!currentShow || !selectedShow) return;
+    
+    const condensedGroups = getCondensedMeasures(currentShow.measures);
+    const newGroups = [...condensedGroups];
+    const [movedGroup] = newGroups.splice(fromIndex, 1);
+    newGroups.splice(toIndex, 0, movedGroup);
+    
+    // Convert back to individual measures
+    const newMeasures: Measure[] = [];
+    newGroups.forEach(group => {
+      for (let i = 0; i < group.count; i++) {
+        newMeasures.push({
+          id: group.ids[i],
+          timeSignature: group.timeSignature,
+          tempo: group.tempo,
+        });
+      }
+    });
+    
+    setShows((prevShows) => prevShows.map((show) =>
+      show.id === selectedShow
+        ? { ...show, measures: newMeasures }
+        : show
+    ));
   };
 
   const [showManagerBottom, setShowManagerBottom] = useState<number | null>(null);
@@ -667,6 +772,10 @@ export default function ShowModeScreen() {
   const [tempoSelection, setTempoSelection] = useState<{start: number, end: number} | undefined>(undefined);
   const [numeratorSelection, setNumeratorSelection] = useState<{start: number, end: number} | undefined>(undefined);
   const [denominatorSelection, setDenominatorSelection] = useState<{start: number, end: number} | undefined>(undefined);
+
+  // Drag and drop state
+  // const [draggableMeasures, setDraggableMeasures] = useState<Measure[]>([]); // Removed
+  // const [draggableCondensedGroups, setDraggableCondensedGroups] = useState<CondensedMeasureGroup[]>([]); // Removed
 
   // UI rendering
   const colors = AppTheme.colors;
@@ -766,43 +875,86 @@ export default function ShowModeScreen() {
               </View>
             </View>
             {currentShow && currentShow.measures && currentShow.measures.length > 0 ? (
-              condensedView ? (
-                <FlatList
-                  data={getCondensedMeasures(currentShow.measures)}
-                  keyExtractor={(_, idx) => idx.toString()}
-                  style={styles.measureList}
-                  contentContainerStyle={{ paddingBottom: 16 }}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.measureItem} onPress={() => handleEditCondensedGroup(item)}>
-                      <ThemedText>{item.count === 1 ? '1 mes.' : `${item.count} mes.`}</ThemedText>
-                      <ThemedText>{item.timeSignature.numerator}/{item.timeSignature.denominator}</ThemedText>
-                      <ThemedText>{item.tempo} BPM</ThemedText>
-                      <TouchableOpacity style={styles.iconButtonSmall} onPress={() => { handleDeleteCondensedGroup(item.ids); }}>
-                        <IconSymbol name="trash" size={18} color="#fff" />
-                      </TouchableOpacity>
-                    </TouchableOpacity>
-                  )}
-                />
-              ) : (
-                <FlatList
-                  data={currentShow.measures}
-                  keyExtractor={item => item.id}
-                  style={styles.measureList}
-                  contentContainerStyle={{ paddingBottom: 16 }}
-                  renderItem={({ item }) => (
-                    <View style={styles.measureItem}>
-                      <ThemedText>{item.timeSignature.numerator}/{item.timeSignature.denominator}</ThemedText>
-                      <ThemedText>{item.tempo} BPM</ThemedText>
-                      <TouchableOpacity style={styles.iconButtonSmall} onPress={() => handleDeleteMeasure(item.id)}>
-                        <IconSymbol name="trash" size={18} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                />
-              )
+              (() => {
+                return condensedView ? (
+                  <FlatList
+                    data={getCondensedMeasures(currentShow.measures)}
+                    keyExtractor={(_, idx) => idx.toString()}
+                    style={styles.measureList}
+                    contentContainerStyle={{ paddingBottom: 16 }}
+                    renderItem={({ item, index }) => (
+                      <View style={styles.measureItem}>
+                        <ThemedText>{item.count === 1 ? '1 mes.' : `${item.count} mes.`}</ThemedText>
+                        <ThemedText>{item.timeSignature.numerator}/{item.timeSignature.denominator}</ThemedText>
+                        <ThemedText>{item.tempo} BPM</ThemedText>
+                        <View style={{ flexDirection: 'row', gap: 4 }}>
+                          <TouchableOpacity 
+                            style={[styles.iconButtonSmall, { opacity: index === 0 ? 0.3 : 1 }]} 
+                            onPress={() => index > 0 && reorderCondensedGroups(index, index - 1)}
+                            disabled={index === 0}
+                          >
+                            <IconSymbol name="chevron.up" size={16} color="#fff" />
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={[styles.iconButtonSmall, { opacity: index === getCondensedMeasures(currentShow.measures).length - 1 ? 0.3 : 1 }]} 
+                            onPress={() => index < getCondensedMeasures(currentShow.measures).length - 1 && reorderCondensedGroups(index, index + 1)}
+                            disabled={index === getCondensedMeasures(currentShow.measures).length - 1}
+                          >
+                            <IconSymbol name="chevron.down" size={16} color="#fff" />
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.iconButtonSmall} onPress={() => handleEditCondensedGroup(item)}>
+                            <IconSymbol name="pencil" size={18} color="#fff" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+                  />
+                ) : (
+                  <FlatList
+                    data={currentShow.measures}
+                    keyExtractor={item => item.id}
+                    style={styles.measureList}
+                    contentContainerStyle={{ paddingBottom: 16 }}
+                    renderItem={({ item, index }) => (
+                      <View style={styles.measureItem}>
+                        <ThemedText>{item.timeSignature.numerator}/{item.timeSignature.denominator}</ThemedText>
+                        <ThemedText>{item.tempo} BPM</ThemedText>
+                        <View style={{ flexDirection: 'row', gap: 4 }}>
+                          <TouchableOpacity 
+                            style={[styles.iconButtonSmall, { opacity: index === 0 ? 0.3 : 1 }]} 
+                            onPress={() => index > 0 && reorderMeasures(index, index - 1)}
+                            disabled={index === 0}
+                          >
+                            <IconSymbol name="chevron.up" size={16} color="#fff" />
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={[styles.iconButtonSmall, { opacity: index === currentShow.measures.length - 1 ? 0.3 : 1 }]} 
+                            onPress={() => index < currentShow.measures.length - 1 && reorderMeasures(index, index + 1)}
+                            disabled={index === currentShow.measures.length - 1}
+                          >
+                            <IconSymbol name="chevron.down" size={16} color="#fff" />
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.iconButtonSmall} onPress={() => {
+                            // Create a condensed group for this single measure for editing
+                            const singleMeasureGroup: CondensedMeasureGroup = {
+                              ...item,
+                              count: 1,
+                              startIdx: 0,
+                              ids: [item.id]
+                            };
+                            handleEditCondensedGroup(singleMeasureGroup);
+                          }}>
+                            <IconSymbol name="pencil" size={18} color="#fff" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+                  />
+                );
+              })()
             ) : (
               <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
-                <ThemedText>No measures in this show.</ThemedText>
+                <ThemedText>{currentShow ? 'No measures in this show.' : 'No show selected.'}</ThemedText>
               </View>
             )}
           </View>
@@ -836,13 +988,21 @@ export default function ShowModeScreen() {
       <FadeModal visible={showAddMeasure} onRequestClose={() => setShowAddMeasure(false)}>
         <ThemedText type="title">Add Measures</ThemedText>
         <View style={{ marginBottom: 8 }}>
-          <ThemedText style={styles.inputLabel}>Number of measures</ThemedText>
+          <ThemedText style={styles.inputLabel}>Number of measures (1-500)</ThemedText>
           <TextInput
             ref={numMeasuresRef}
             value={numMeasures}
-            onChangeText={setNumMeasures}
+            onChangeText={(text) => {
+              // Only allow numbers
+              const numericText = text.replace(/[^0-9]/g, '');
+              // Limit to 3 digits (max 500)
+              if (numericText.length <= 3) {
+                setNumMeasures(numericText);
+              }
+            }}
             style={styles.input}
             placeholderTextColor="#888"
+            placeholder="1"
             keyboardType="number-pad"
             selectionColor={AppTheme.colors.accent}
             selection={numMeasuresSelection}
@@ -851,13 +1011,21 @@ export default function ShowModeScreen() {
           />
         </View>
         <View style={{ marginBottom: 8 }}>
-          <ThemedText style={styles.inputLabel}>Tempo (BPM)</ThemedText>
+          <ThemedText style={styles.inputLabel}>Tempo (BPM) (40-300)</ThemedText>
           <TextInput
             ref={tempoRef}
             value={tempo}
-            onChangeText={setTempo}
+            onChangeText={(text) => {
+              // Only allow numbers
+              const numericText = text.replace(/[^0-9]/g, '');
+              // Limit to 3 digits (max 300)
+              if (numericText.length <= 3) {
+                setTempo(numericText);
+              }
+            }}
             style={styles.input}
             placeholderTextColor="#888"
+            placeholder="120"
             keyboardType="number-pad"
             selectionColor={AppTheme.colors.accent}
             selection={tempoSelection}
@@ -872,9 +1040,17 @@ export default function ShowModeScreen() {
               <TextInput
                 ref={numeratorRef}
                 value={numerator}
-                onChangeText={setNumerator}
+                onChangeText={(text) => {
+                  // Only allow numbers
+                  const numericText = text.replace(/[^0-9]/g, '');
+                  // Limit to 2 digits (max 31)
+                  if (numericText.length <= 2) {
+                    setNumerator(numericText);
+                  }
+                }}
                 style={styles.input}
                 placeholderTextColor="#888"
+                placeholder="4"
                 keyboardType="number-pad"
                 selectionColor={AppTheme.colors.accent}
                 selection={numeratorSelection}
@@ -887,9 +1063,17 @@ export default function ShowModeScreen() {
               <TextInput
                 ref={denominatorRef}
                 value={denominator}
-                onChangeText={setDenominator}
+                onChangeText={(text) => {
+                  // Only allow numbers
+                  const numericText = text.replace(/[^0-9]/g, '');
+                  // Limit to 2 digits (max 32)
+                  if (numericText.length <= 2) {
+                    setDenominator(numericText);
+                  }
+                }}
                 style={styles.input}
                 placeholderTextColor="#888"
+                placeholder="4"
                 keyboardType="number-pad"
                 selectionColor={AppTheme.colors.accent}
                 selection={denominatorSelection}
@@ -941,38 +1125,37 @@ export default function ShowModeScreen() {
         }}>
           Export as File
         </Button>
+        <Button mode="outlined" style={{ marginTop: 8, borderColor: '#e53935', backgroundColor: '#e53935' }} onPress={() => {
+          if (editShowId) {
+            setShows((prevShows) => {
+              const remainingShows = prevShows.filter((show) => show.id !== editShowId);
+              
+              // Update selected show if the deleted show was selected
+              setSelectedShow((prevSelected) => {
+                if (prevSelected === editShowId) {
+                  return remainingShows.length > 0 ? remainingShows[0].id : null;
+                }
+                return prevSelected;
+              });
+              
+              return remainingShows;
+            });
+            
+            setEditShowId(null);
+            setShowEdit(false);
+          }
+        }}>
+          <ThemedText style={{ color: '#fff' }}>Delete Show</ThemedText>
+        </Button>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginTop: 16 }}>
           <View style={{ flex: 1, alignItems: 'flex-start' }}>
             <Button onPress={() => setShowEdit(false)} mode="text">Cancel</Button>
-          </View>
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <Button onPress={() => { setConfirmDelete(true); setShowEdit(false); }} mode="contained" style={{ backgroundColor: '#e53935' }}>Delete</Button>
           </View>
           <View style={{ flex: 1, alignItems: 'flex-end' }}>
             <Button onPress={() => { handleRenameShow(editShowId); setShowEdit(false); }} mode="contained">Save</Button>
           </View>
         </View>
       </FadeModal>
-      {/* Confirm Delete Popup */}
-      <FadeModal visible={confirmDelete} onRequestClose={() => setConfirmDelete(false)}>
-        <ThemedText type="title" style={{ color: '#e53935' }}>Delete Show?</ThemedText>
-        <ThemedText>Are you sure you want to delete this show? This cannot be undone.</ThemedText>
-        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-          <Button onPress={() => setConfirmDelete(false)} mode="text">Cancel</Button>
-          <Button onPress={() => {
-            if (editShowId) {
-              handleDeleteShow(editShowId);
-              setEditShowId(null);
-              setShowEdit(false);
-              setConfirmDelete(false);
-              // If the deleted show was selected, select another or null
-              const remainingShows = shows.filter(s => s.id !== editShowId);
-              setSelectedShow(remainingShows.length > 0 ? remainingShows[0].id : null);
-            }
-          }} mode="contained" style={{ backgroundColor: '#e53935' }}>Delete</Button>
-        </View>
-      </FadeModal>
-
       {/* Import Conflict Modal */}
       <FadeModal visible={showImportConflict} onRequestClose={() => setShowImportConflict(false)}>
         <ThemedText type="title">Import Conflict</ThemedText>
@@ -1048,9 +1231,22 @@ export default function ShowModeScreen() {
             </View>
           </View>
         </View>
-        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
-          <Button onPress={() => { setShowEditCondensed(false); setEditCondensedGroup(null); }} mode="text">Cancel</Button>
-          <Button onPress={handleSaveCondensedGroup} mode="contained">Save</Button>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
+          <View style={{ flex: 1, alignItems: 'flex-start' }}>
+            <Button onPress={() => { setShowEditCondensed(false); setEditCondensedGroup(null); }} mode="text">Cancel</Button>
+          </View>
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <Button onPress={() => {
+              if (editCondensedGroup) {
+                handleDeleteCondensedGroup(editCondensedGroup.ids);
+                setShowEditCondensed(false);
+                setEditCondensedGroup(null);
+              }
+            }} mode="contained" style={{ backgroundColor: '#e53935' }}>Delete</Button>
+          </View>
+          <View style={{ flex: 1, alignItems: 'flex-end' }}>
+            <Button onPress={handleSaveCondensedGroup} mode="contained">Save</Button>
+          </View>
         </View>
       </FadeModal>
 

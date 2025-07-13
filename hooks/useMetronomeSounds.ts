@@ -13,15 +13,11 @@ export function useMetronomeSounds() {
 
   // Configure audio session to ignore silent mode
   useEffect(() => {
-    console.log('🎵 Configuring metronome sounds with silent mode bypass...');
-    
     // Configure audio session to ignore silent mode
     if (Platform.OS === 'ios') {
       Sound.setCategory('Playback', true);
-      console.log('✅ iOS audio session configured to ignore silent mode');
     } else if (Platform.OS === 'android') {
       Sound.setCategory('Playback', true);
-      console.log('✅ Android audio session configured to ignore silent mode');
     }
   }, []);
 
@@ -30,7 +26,6 @@ export function useMetronomeSounds() {
     try {
       hiPlayer.seekTo(0);
       setTimeout(() => hiPlayer.play(), 1);
-      console.log('🔊 Played hi click (silent mode should be ignored)');
     } catch (error) {
       console.error('❌ Failed to play hi click:', error);
     }
@@ -41,7 +36,6 @@ export function useMetronomeSounds() {
     try {
       loPlayer.seekTo(0);
       setTimeout(() => loPlayer.play(), 1);
-      console.log('🔊 Played lo click (silent mode should be ignored)');
     } catch (error) {
       console.error('❌ Failed to play lo click:', error);
     }

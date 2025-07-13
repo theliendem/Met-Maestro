@@ -1,7 +1,6 @@
 // Tuner screen UI
 // TODO: Implement tuner UI using useTuner hook
 
-import { SettingsButton } from '@/components/SettingsButton';
 import { SettingsModal } from '@/components/SettingsModal';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -184,8 +183,8 @@ export default function TunerScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      {/* Settings gear */}
-      <SettingsButton onPress={() => setSettingsVisible(true)} />
+      {/* Settings gear - hidden in tuner mode */}
+      {/* <SettingsButton onPress={() => setSettingsVisible(true)} /> */}
       {/* Settings Modal */}
       <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
 

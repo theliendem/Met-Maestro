@@ -11,14 +11,11 @@ import Sound from 'react-native-sound';
  * Uses react-native-sound's built-in audio session configuration
  */
 export function configureAudioSession() {
-  console.log('Configuring audio session for platform:', Platform.OS);
-  
   if (Platform.OS === 'ios') {
     // For iOS, react-native-sound can configure the audio session
     // to ignore the silent switch
     try {
       Sound.setCategory('Playback', true); // true = mix with other audio
-      console.log('✅ iOS audio session configured with Playback category and mixing enabled');
     } catch (error) {
       console.error('❌ Failed to configure iOS audio session:', error);
     }
@@ -26,7 +23,6 @@ export function configureAudioSession() {
     // For Android, react-native-sound handles audio focus and silent mode
     try {
       Sound.setCategory('Playback', true);
-      console.log('✅ Android audio session configured with Playback category and mixing enabled');
     } catch (error) {
       console.error('❌ Failed to configure Android audio session:', error);
     }
@@ -38,7 +34,6 @@ export function configureAudioSession() {
  * Call this when the app starts or when audio is first used
  */
 export function initializeAudioSession() {
-  console.log('🚀 Initializing audio session...');
   configureAudioSession();
 }
 
@@ -48,7 +43,6 @@ export function initializeAudioSession() {
  * before playing any sounds
  */
 export function activateAudioSession() {
-  console.log('🔊 Activating audio session...');
   // This function can be called before playing audio to ensure
   // the audio session is properly configured
   configureAudioSession();
@@ -59,7 +53,5 @@ export function activateAudioSession() {
  * This can be used to verify that the audio session is properly configured
  */
 export function testAudioSession() {
-  console.log('🧪 Testing audio session configuration...');
   configureAudioSession();
-  console.log('✅ Audio session test completed');
 } 

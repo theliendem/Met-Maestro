@@ -235,7 +235,7 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
 ## **Step 10:  Fix UI for Met Mode**
 1. ✅ Restructure met mode to find a general layout that I like.
 2. ✅ Add in three buttons on the corners (tap bpm, subdivision, sound)
-3. Implement tap bpm functionality (see potential ideas #3)
+3. ✅ Implement tap bpm functionality (see potential ideas #3)
 
 # **Phase 4: Migrate Metronome Audio to `react-native-sound`**
 
@@ -321,7 +321,7 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
 # **Potential future ideas**
 1. Subdivisions per beat
 2. Accent patterns (e.g. for 7/8: O-o-O-o-O-o-o). Add in presets but also allow the user to create their own.
-3. Tap tempo: Add a button which lets the user set the tempo by tapping on the button consistently.
+3. ✅ Tap tempo: Add a button which lets the user set the tempo by tapping on the button consistently.
 4. Practice modes: the tempo gradually increases/decreases over time.
 5. Customizable sounds: offer a variety of different presets for sounds like woodblock, cowbell, electronic clicks etc.
 6. Recording/playback? For practice, allow the user to record themself playing with the met then be able to listen back and check their timing.
@@ -333,9 +333,10 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
 11. Reference tone playback (play A440 or selected reference pitch for ear-training)
 12. Transposition / notation filter (display notes as Bb/Eb instrument view)
 13. Live waveform or spectrum visualiser for tuner screen
-14. Make it so if you tap on the slider bar in the met mode, it'll go there (so you don't have necessarily have to slide)
+14. ✅ Make it so if you tap on the slider bar in the met mode, it'll go there (so you don't have necessarily have to slide)
 15. Expanding modal animation for popups: Implement a reusable modal component (using Reanimated 2) that animates by expanding from the tapped element's position and size to its final modal size/position, with the overlay and modal content fading in together. The animation should be smooth and visually connected to the origin element. This should apply to all modal popups in the app, including: BPM input modal, numerator/denominator input modals, "coming soon" modals for subdivision and sound buttons, and any future modal-based UI. The modal should animate back to the origin element when dismissed. Capture the origin element's layout (position/size) to drive the animation. Overlay should fade in/out in sync with the modal expansion/contraction.
 16. Add a swipe gesture where you can swipe left or right to the next/previous tab, with an animation.
+17. Music scanning feature: Allow users to scan their sheet music using the device camera, and the app automatically translates the time signatures, tempo markings, and measure structure into a show. This would use OCR (Optical Character Recognition) to detect musical notation and convert it into the app's show format.
 
 ---
 
