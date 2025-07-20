@@ -2,7 +2,7 @@
   "expo": {
     "name": "Met Maestro",
     "slug": "met-maestro",
-    "version": "2.0.0",
+    "version": "3.0.1",
     "orientation": "portrait",
     "icon": "./met-maestro-logo.png",
     "scheme": "metmaestro",
@@ -11,12 +11,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.theliendem.metmaestro",
-      "buildNumber": "6",
+      "buildNumber": "13",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": [
-          "audio"
-        ]
+        "NSMicrophoneUsageDescription": "Met Maestro needs microphone access to detect pitch for the tuner feature."
       }
     },
     "android": {
@@ -25,8 +23,10 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": [],
-      "versionCode": 1,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "versionCode": 13,
       "package": "com.theliendem.metmaestro"
     },
     "web": {
@@ -34,9 +34,7 @@
       "output": "static",
       "favicon": "./met-maestro-logo.png"
     },
-    "updates": {
-      "channel": "production"
-    },
+    "updates": {},
     "plugins": [
       "expo-router",
       [
@@ -49,7 +47,13 @@
         }
       ],
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      [
+        "react-native-permissions",
+        {
+          "microphone": "Met Maestro needs microphone access to detect pitch for the tuner feature."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

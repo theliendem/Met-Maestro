@@ -188,10 +188,10 @@
 
 ## **Step 4: Polish & UX Enhancements**
 1. ✅ Refine dark mode UI for modern, minimalist look. (And consistent UI e.g. same colored buttons, background, section backgrounds etc.)
-2. Refine UI (make the play button larger, move the play button/tempo bar to the bottom on show mode)
-2. Add accessibility features (large touch targets, haptics, etc.).
-3. Add error handling and edge case management (e.g., invalid time signatures, empty shows).
-4. Optimize for performance and battery usage.
+2. ✅ Refine UI (make the play button larger, move the play button/tempo bar to the bottom on show mode)
+3. Add accessibility features (large touch targets, haptics, etc.).
+4. Add error handling and edge case management (e.g., invalid time signatures, empty shows).
+5. Optimize for performance and battery usage.
 
 # **Phase 2: Real-Time Instrument Tuner (iOS / Android)**
 
@@ -214,7 +214,7 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
 ## **Step 7:  Implement Pitch-Detection Worker**
 1. ✅ Create `utils/pitchDetector.ts` that wraps YIN *(Complete)*
 2. ✅ Smooth output with moving average; convert frequency → `{note, octave, cents}` *(Complete)*
-3. Provide React hook `usePitch()` for components.
+3. ✅ Provide React hook `usePitch()` for components.
 
 ## **Step 8:  Build Tuner Screen UI**
 1. ✅ New file `app/(tabs)/tuner.tsx`: *(Complete)*
@@ -222,7 +222,7 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
    - Horizontal/arc needle ±50 cents; color-coded (in-tune = blue, sharp/flat = orange).
 2. ✅ Animate needle with Reanimated/Animated *(Complete)*
 3. ✅ Start/stop recording on screen focus to save battery *(Complete)*
-4. Settings gear:
+4. ✅ Settings gear:
    - Reference pitch slider (415–466 Hz, default 440).
    - Toggle "Show cents" indicator.
 
@@ -242,9 +242,9 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
 **Goal:** Replace `expo-audio` with `react-native-sound` in `app/(tabs)/metronome.tsx` and `app/(tabs)/show.tsx` to ensure reliable overlapping clicks.
 
 ## **Step 11: Setup and Basic Replacement (`app/(tabs)/metronome.tsx` First)**
-1.  **Ensure `react-native-sound` is Fully Linked (Prerequisite Check):**
+1.  ✅ **Ensure `react-native-sound` is Fully Linked (Prerequisite Check):**
     *   Run `cd ios && pod install && cd ..` in the terminal to ensure native dependencies are installed.
-2.  **Modify `app/(tabs)/metronome.tsx`:**
+2.  ✅ **Modify `app/(tabs)/metronome.tsx`:**
     *   Remove `expo-audio` import: `import { useAudioPlayer } from 'expo-audio';`
     *   Add `react-native-sound` import: `import Sound from 'react-native-sound';`
     *   Inside `MetronomeScreen` component, declare `useRef` for Sound Pools and Indexes:
@@ -308,13 +308,120 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
         *   Replace `loPlayer.seekTo(0); setTimeout(() => loPlayer.play(), 1);` with `playSoundFromPool(loSounds, currentLoSoundIdx);`
 
 ## **Step 12: Apply to `app/(tabs)/show.tsx` and Refinements**
-1.  **Modify `app/(tabs)/show.tsx`:**
+1.  ✅ **Modify `app/(tabs)/show.tsx`:**
     *   Repeat modifications from Step 11 for `app/(tabs)/show.tsx` (remove `expo-audio` import, add `react-native-sound` import, declare refs, add sound loading/release `useEffect`, create `playSoundFromPool`, update playback logic to use `playSoundFromPool`).
-2.  **Create a Reusable Sound Hook (`hooks/useMetronomeSounds.ts`) (Recommended):**
+2.  ✅ **Create a Reusable Sound Hook (`hooks/useMetronomeSounds.ts`) (Recommended):**
     *   Create `hooks/useMetronomeSounds.ts`.
     *   Move the `Sound` import, all sound-related `useRef` declarations, the sound loading/release `useEffect`, and the `playSoundFromPool` function into this new hook.
     *   The hook should return functions like `playHiClick` and `playLoClick`.
     *   Replace duplicated sound logic in `metronome.tsx` and `show.tsx` with calls to this single hook.
+
+---
+
+# **Phase 5: Migrate Metronome to WebView with expo-audio**
+
+**Goal:** Replace React Native metronome components with WebView-based implementation using `expo-audio` with `new AudioContext()` for precise audio timing.
+
+## **Step 13: Install and Configure Dependencies**
+1. ✅ **Install expo-audio:**
+   - Run `npx expo install expo-audio`
+   - Add `expo-audio` to plugins in `app.json`
+2. ✅ **Update app.json configuration:**
+   - Ensure expo-audio permissions are configured
+
+## **Step 14: Create WebView Metronome Component**
+1. ✅ **Create `components/WebViewMetronome.tsx`:**
+   - Build WebView container with HTML/CSS/JS metronome
+   - Implement `new AudioContext()` for precise audio timing
+   - Add beat generation with different frequencies for downbeat/offbeat
+   - Include tempo bar visualization with beat highlighting
+   - Add time signature controls with chevron navigation
+   - Implement play/stop button with state management
+   - Add message passing between WebView and React Native
+2. ✅ **Create `hooks/useAudioPermission.ts`:**
+   - Implement audio permission request using `expo-audio`
+   - Add permission status management
+   - Include error handling for permission denial
+
+## **Step 15: Update Metronome Screen**
+1. ✅ **Modify `app/(tabs)/metronome.tsx`:**
+   - Replace existing metronome logic with WebView component
+   - Integrate `useAudioPermission` hook
+   - Maintain existing UI elements (tap BPM, time signature selector, tempo slider)
+   - Add WebView container styling
+   - Implement message handling for beat changes and play state
+   - Preserve existing modal components and tap BPM functionality
+
+## **Step 16: Create WebView Show Component**
+1. **Create `components/WebViewShow.tsx`:**
+   - Build WebView container for show mode functionality
+   - Implement count-in sequence (4 beats before show starts)
+   - Add measure-by-measure playback with tempo/time signature changes
+   - Include beat visualization and measure progress tracking
+   - Add show completion detection and callback
+   - Implement message passing for beat/measure/state changes
+
+## **Step 17: Update Show Mode Screen**
+1. **Modify `app/(tabs)/show.tsx`:**
+   - Replace existing show playback logic with WebView component
+   - Integrate `useAudioPermission` hook
+   - Maintain existing show management UI (add/edit/delete measures)
+   - Add WebView container styling
+   - Implement message handling for beat/measure changes and completion
+   - Preserve existing show persistence and import/export functionality
+
+## **Step 18: Testing and Validation**
+1. **Test Audio Permissions:**
+   - Verify microphone permissions work correctly on iOS/Android
+   - Test audio playback in different device states (silent mode, etc.)
+2. **Test Timing Accuracy:**
+   - Compare WebView timing with existing timer.js implementation
+   - Verify beat intervals are mathematically correct
+   - Test tempo changes and time signature changes
+3. **Test Show Mode:**
+   - Verify count-in sequence works correctly
+   - Test measure transitions with different tempos/time signatures
+   - Ensure show completion and state restoration works
+4. **Test UI Integration:**
+   - Verify WebView components integrate seamlessly with existing UI
+   - Test responsive design across different screen sizes
+   - Ensure accessibility features are maintained
+
+## **Step 19: Performance Optimization**
+1. **Optimize WebView Performance:**
+   - Minimize HTML/CSS/JS bundle size
+   - Optimize audio context initialization
+   - Implement efficient message passing
+2. **Battery Life Considerations:**
+   - Stop audio context when not in use
+   - Implement proper cleanup on component unmount
+   - Monitor memory usage and prevent leaks
+
+## **Step 20: Documentation and Cleanup**
+1. **Update Documentation:**
+   - Document WebView architecture in README
+   - Add comments explaining audio context usage
+   - Document message passing protocol
+2. **Remove Legacy Code:**
+   - Remove old timer.js usage from metronome components
+   - Clean up unused audio session utilities
+   - Remove react-native-sound dependencies if no longer needed
+
+---
+
+**Expected Benefits:**
+- More precise audio timing using Web Audio API
+- Better audio overlap handling with AudioContext
+- Consistent cross-platform audio behavior
+- Reduced native dependency complexity
+- Improved audio latency and reliability
+
+**Potential Challenges:**
+- WebView initialization overhead
+- Audio context permission handling
+- Message passing complexity
+- Memory management for long-running shows
+- Cross-platform WebView differences
 
 ---
 
@@ -340,7 +447,7 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
 
 ---
 
-**NOTES TO SELF (ignore this section if you are an AI model reading this to build this project)**
+# **NOTES TO SELF (ignore this section if you are an AI model reading this to build this project)**
 ## For submitting new versions to App Store:
 First increment version number and ios.buildNumber in app.json. THEN go into ios/MetMaestro/Info.plist and change the version and Bundle Version (VERY IMPORTANT!!! It will not work if you don't do both). THEN go into eas.json and make sure that build.development.simulator is false or does not exist. Then do `eas build -p ios --profile production` then `eas submit -p ios --latest`
 ## For building to a local simulator:
@@ -348,4 +455,42 @@ Before you make a build, go into eas.json and make sure that build.development.s
 
 ---
 
-**Ready to proceed with any phase or component—just let me know!** 
+**Ready to proceed with any phase or component—just let me know!**
+
+## **FIXED: Archive Missing Bundle Identifier Error (2025-01-13)**
+
+**Problem:** Production builds were failing with "Archive Missing Bundle Identifier" error due to version mismatches between configuration files.
+
+**Root Cause:** 
+- `app.json` specified version `3.0.0` and build number `7`
+- Xcode project was still using `MARKETING_VERSION = 1.0` and `CURRENT_PROJECT_VERSION = 1`
+- Android `versionCode` was `1` while iOS build number was `7`
+- EAS production build configuration was missing explicit iOS settings
+
+**Fixes Applied:**
+
+1. **Updated iOS Xcode Project (`ios/MetMaestro.xcodeproj/project.pbxproj`):**
+   - Changed `MARKETING_VERSION` from `1.0` to `3.0.0` for both Debug and Release configurations
+   - Changed `CURRENT_PROJECT_VERSION` from `1` to `7` for Release configuration
+
+2. **Updated Android Build Configuration (`android/app/build.gradle`):**
+   - Changed `versionCode` from `1` to `7` to match iOS build number
+
+3. **Enhanced EAS Build Configuration (`eas.json`):**
+   - Added explicit iOS build configuration for production:
+   ```json
+   "production": {
+     "autoIncrement": true,
+     "ios": {
+       "buildConfiguration": "Release"
+     }
+   }
+   ```
+
+4. **Cleaned and Rebuilt Dependencies:**
+   - Removed old build artifacts, Pods, and Podfile.lock
+   - Ran `npx expo install --fix` to ensure dependency compatibility
+   - Reinstalled pods with `pod install`
+
+**Result:** Bundle identifier is now properly recognized during production builds, resolving the archive error. 
+

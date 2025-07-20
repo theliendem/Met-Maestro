@@ -7,31 +7,27 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		10A2FBDA2E22231100378593 /* click_hi.wav in Resources */ = {isa = PBXBuildFile; fileRef = 10A2FBD82E22231100378593 /* click_hi.wav */; };
-		10A2FBDB2E22231100378593 /* click_lo.wav in Resources */ = {isa = PBXBuildFile; fileRef = 10A2FBD92E22231100378593 /* click_lo.wav */; };
+		0CCA6B6984DC59E5BDCA154E /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 371E75D01D6AFA5866F43E0B /* ExpoModulesProvider.swift */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		1A1A01E1C666F907D82C278E /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A623947BF50037C909F93356 /* ExpoModulesProvider.swift */; };
-		21D32D3603E9888110099612 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B39A4C25C5356DCEBC09703D /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		8107B354E3B07FC09316BDA0 /* libPods-MetMaestro.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D29D14ACAA936325E8079D0A /* libPods-MetMaestro.a */; };
+		9C40F2C601F7D58587792870 /* libPods-MetMaestro.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EEB703C6397D6645B94BE6C7 /* libPods-MetMaestro.a */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
+		F9719EAE0582CACD8FCCA205 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4AA560E711E6BDA1F389765E /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		10A2FBD82E22231100378593 /* click_hi.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = click_hi.wav; sourceTree = "<group>"; };
-		10A2FBD92E22231100378593 /* click_lo.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = click_lo.wav; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* MetMaestro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MetMaestro.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MetMaestro/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = MetMaestro/Info.plist; sourceTree = "<group>"; };
-		7E43CA71576F9DA7481191F9 /* Pods-MetMaestro.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MetMaestro.debug.xcconfig"; path = "Target Support Files/Pods-MetMaestro/Pods-MetMaestro.debug.xcconfig"; sourceTree = "<group>"; };
-		A623947BF50037C909F93356 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-MetMaestro/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		371E75D01D6AFA5866F43E0B /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-MetMaestro/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		4AA560E711E6BDA1F389765E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = MetMaestro/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		5368D8B1DFFCBC7619FD431E /* Pods-MetMaestro.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MetMaestro.release.xcconfig"; path = "Target Support Files/Pods-MetMaestro/Pods-MetMaestro.release.xcconfig"; sourceTree = "<group>"; };
+		858DE534224A034CD713EBDF /* Pods-MetMaestro.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MetMaestro.debug.xcconfig"; path = "Target Support Files/Pods-MetMaestro/Pods-MetMaestro.debug.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = MetMaestro/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B39A4C25C5356DCEBC09703D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = MetMaestro/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		D29D14ACAA936325E8079D0A /* libPods-MetMaestro.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MetMaestro.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		E4809E38CE523B433A1A2151 /* Pods-MetMaestro.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MetMaestro.release.xcconfig"; path = "Target Support Files/Pods-MetMaestro/Pods-MetMaestro.release.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		EEB703C6397D6645B94BE6C7 /* libPods-MetMaestro.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MetMaestro.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = MetMaestro/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* MetMaestro-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "MetMaestro-Bridging-Header.h"; path = "MetMaestro/MetMaestro-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -41,13 +37,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8107B354E3B07FC09316BDA0 /* libPods-MetMaestro.a in Frameworks */,
+				9C40F2C601F7D58587792870 /* libPods-MetMaestro.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		082FBDBEFF3649EDB46D9010 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				FEDAEB7EED88F4530760845C /* MetMaestro */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
 		13B07FAE1A68108700A75B9A /* MetMaestro */ = {
 			isa = PBXGroup;
 			children = (
@@ -57,35 +61,27 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				B39A4C25C5356DCEBC09703D /* PrivacyInfo.xcprivacy */,
+				4AA560E711E6BDA1F389765E /* PrivacyInfo.xcprivacy */,
 			);
 			name = MetMaestro;
+			sourceTree = "<group>";
+		};
+		1E5C59FE94953934ACAD2CC1 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				858DE534224A034CD713EBDF /* Pods-MetMaestro.debug.xcconfig */,
+				5368D8B1DFFCBC7619FD431E /* Pods-MetMaestro.release.xcconfig */,
+			);
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				D29D14ACAA936325E8079D0A /* libPods-MetMaestro.a */,
+				EEB703C6397D6645B94BE6C7 /* libPods-MetMaestro.a */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		37CF26E48E05D3F7785C560F /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				7E43CA71576F9DA7481191F9 /* Pods-MetMaestro.debug.xcconfig */,
-				E4809E38CE523B433A1A2151 /* Pods-MetMaestro.release.xcconfig */,
-			);
-			path = Pods;
-			sourceTree = "<group>";
-		};
-		7DD7E14251F96EC7CD0B2335 /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				F4248ED741C0F617DA0D81FA /* MetMaestro */,
-			);
-			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -102,10 +98,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				37CF26E48E05D3F7785C560F /* Pods */,
-				7DD7E14251F96EC7CD0B2335 /* ExpoModulesProviders */,
-				10A2FBD82E22231100378593 /* click_hi.wav */,
-				10A2FBD92E22231100378593 /* click_lo.wav */,
+				1E5C59FE94953934ACAD2CC1 /* Pods */,
+				082FBDBEFF3649EDB46D9010 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -129,10 +123,10 @@
 			path = MetMaestro/Supporting;
 			sourceTree = "<group>";
 		};
-		F4248ED741C0F617DA0D81FA /* MetMaestro */ = {
+		FEDAEB7EED88F4530760845C /* MetMaestro */ = {
 			isa = PBXGroup;
 			children = (
-				A623947BF50037C909F93356 /* ExpoModulesProvider.swift */,
+				371E75D01D6AFA5866F43E0B /* ExpoModulesProvider.swift */,
 			);
 			name = MetMaestro;
 			sourceTree = "<group>";
@@ -145,13 +139,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "MetMaestro" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				8394BA6765F41958CD3A5620 /* [Expo] Configure project */,
+				FDC4F7EEB7A5A4F46332ED8C /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				08B5242439C1BD807E8FA4CC /* [CP] Embed Pods Frameworks */,
+				9395C7B246EB695C391ECF38 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -199,11 +193,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
-				10A2FBDA2E22231100378593 /* click_hi.wav in Resources */,
-				10A2FBDB2E22231100378593 /* click_lo.wav in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				21D32D3603E9888110099612 /* PrivacyInfo.xcprivacy in Resources */,
+				F9719EAE0582CACD8FCCA205 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -245,24 +237,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		08B5242439C1BD807E8FA4CC /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-MetMaestro/Pods-MetMaestro-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MetMaestro/Pods-MetMaestro-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
@@ -309,7 +283,25 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MetMaestro/Pods-MetMaestro-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		8394BA6765F41958CD3A5620 /* [Expo] Configure project */ = {
+		9395C7B246EB695C391ECF38 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-MetMaestro/Pods-MetMaestro-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MetMaestro/Pods-MetMaestro-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		FDC4F7EEB7A5A4F46332ED8C /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -336,7 +328,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				1A1A01E1C666F907D82C278E /* ExpoModulesProvider.swift in Sources */,
+				0CCA6B6984DC59E5BDCA154E /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -345,12 +337,13 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7E43CA71576F9DA7481191F9 /* Pods-MetMaestro.debug.xcconfig */;
+			baseConfigurationReference = 858DE534224A034CD713EBDF /* Pods-MetMaestro.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = MetMaestro/MetMaestro.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 13;
+				DEVELOPMENT_TEAM = S2K464VBGS;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -362,7 +355,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 3.0.1;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -370,7 +363,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.theliendem.metmaestro;
-				PRODUCT_NAME = "MetMaestro";
+				PRODUCT_NAME = MetMaestro;
 				SWIFT_OBJC_BRIDGING_HEADER = "MetMaestro/MetMaestro-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -381,19 +374,20 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = E4809E38CE523B433A1A2151 /* Pods-MetMaestro.release.xcconfig */;
+			baseConfigurationReference = 5368D8B1DFFCBC7619FD431E /* Pods-MetMaestro.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = MetMaestro/MetMaestro.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 13;
+				DEVELOPMENT_TEAM = S2K464VBGS;
 				INFOPLIST_FILE = MetMaestro/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 3.0.1;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -401,7 +395,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.theliendem.metmaestro;
-				PRODUCT_NAME = "MetMaestro";
+				PRODUCT_NAME = MetMaestro;
 				SWIFT_OBJC_BRIDGING_HEADER = "MetMaestro/MetMaestro-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

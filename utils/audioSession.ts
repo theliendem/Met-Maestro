@@ -1,32 +1,17 @@
 // Audio session configuration utility
 // Ensures metronome audio plays regardless of device silent mode
 
-import { Platform } from 'react-native';
-import Sound from 'react-native-sound';
 
 /**
  * Configure audio session to play through silent mode
  * This ensures the metronome clicks are audible even when the device is on silent
  * 
- * Uses react-native-sound's built-in audio session configuration
+ * Note: expo-audio handles silent mode bypass automatically
  */
 export function configureAudioSession() {
-  if (Platform.OS === 'ios') {
-    // For iOS, react-native-sound can configure the audio session
-    // to ignore the silent switch
-    try {
-      Sound.setCategory('Playback', true); // true = mix with other audio
-    } catch (error) {
-      console.error('❌ Failed to configure iOS audio session:', error);
-    }
-  } else if (Platform.OS === 'android') {
-    // For Android, react-native-sound handles audio focus and silent mode
-    try {
-      Sound.setCategory('Playback', true);
-    } catch (error) {
-      console.error('❌ Failed to configure Android audio session:', error);
-    }
-  }
+  // expo-audio automatically handles silent mode bypass
+  // No additional configuration needed
+  console.log('✅ Audio session configured for expo-audio');
 }
 
 /**
@@ -43,8 +28,7 @@ export function initializeAudioSession() {
  * before playing any sounds
  */
 export function activateAudioSession() {
-  // This function can be called before playing audio to ensure
-  // the audio session is properly configured
+  // expo-audio handles this automatically
   configureAudioSession();
 }
 

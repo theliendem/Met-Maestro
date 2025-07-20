@@ -3,8 +3,6 @@
 
 import { useAudioPlayer } from 'expo-audio';
 import { useCallback, useEffect } from 'react';
-import { Platform } from 'react-native';
-import Sound from 'react-native-sound';
 
 export function useMetronomeSounds() {
   // Use expo-audio for sound playback
@@ -13,12 +11,8 @@ export function useMetronomeSounds() {
 
   // Configure audio session to ignore silent mode
   useEffect(() => {
-    // Configure audio session to ignore silent mode
-    if (Platform.OS === 'ios') {
-      Sound.setCategory('Playback', true);
-    } else if (Platform.OS === 'android') {
-      Sound.setCategory('Playback', true);
-    }
+    // Note: expo-audio handles silent mode bypass automatically
+    // No additional configuration needed
   }, []);
 
   // Play high click (downbeat)

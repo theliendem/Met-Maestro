@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 
 import { Colors } from '@/constants/Colors';
 import { MD3DarkTheme, MD3LightTheme, PaperProvider, Portal } from 'react-native-paper';
+import { PermissionInitializer } from '../components/PermissionInitializer';
 import { initializeAudioSession } from '../utils/audioSession';
 
 const paperLightTheme = {
@@ -56,11 +57,13 @@ export default function RootLayout() {
       <PaperProvider theme={paperDarkTheme}>
         <Portal.Host>
           <GestureHandlerRootView style={{ flex: 1 }}>
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+            <PermissionInitializer>
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+              <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+            </PermissionInitializer>
           </GestureHandlerRootView>
         </Portal.Host>
       </PaperProvider>

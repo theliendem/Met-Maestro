@@ -1,5 +1,6 @@
 import { ThemedView } from '@/components/ThemedView';
-import { useMetronomeSounds } from '@/hooks/useMetronomeSounds';
+import WebViewMetronome from '@/components/WebViewMetronome';
+import { useAudioPermission } from '@/hooks/useAudioPermission';
 import { useTapBpm } from '@/hooks/useTapBpm';
 import { AppTheme } from '@/theme/AppTheme';
 import { vh, vw } from '@/utils/responsive';
@@ -8,8 +9,6 @@ import Slider from '@react-native-community/slider';
 import { useEffect, useRef, useState } from 'react';
 import { Modal, TextInput as RNTextInput, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
-import { activateAudioSession, testAudioSession } from '../../utils/audioSession';
-import Timer from '../../utils/timer';
 
 const NUMERATOR_MIN = 1;
 const NUMERATOR_MAX = 15;
@@ -96,21 +95,8 @@ export default function MetronomeScreen() {
   // Tap BPM hook
   const { isActive: isTapBpmActive, currentBpm: tapBpm, startTapBpm, tap, stopTapBpm } = useTapBpm(TEMPO_MIN, TEMPO_MAX);
 
-  // Timer ref
-  const timerRef = useRef<Timer | null>(null);
-
-  // Metronome sounds hook
-  const { playHiClick, playLoClick } = useMetronomeSounds();
-
-  // Configure audio session to play through silent mode
-  useEffect(() => {
-    activateAudioSession();
-    // Test the audio session configuration
-    testAudioSession();
-  }, []);
-
-  // Calculate beat duration in ms
-  const beatDuration = Math.round(60000 / (tempo * (denominator / 4)));
+  // Audio permission hook
+  const { hasPermission, isRequesting, requestPermission } = useAudioPermission();
 
   // Update tempo when tap BPM detects a valid value
   useEffect(() => {
@@ -119,42 +105,25 @@ export default function MetronomeScreen() {
     }
   }, [tapBpm, isTapBpmActive]);
 
-  // Start/stop timer
-  useEffect(() => {
-    if (!isPlaying) {
-      if (timerRef.current) timerRef.current.stop();
-      setCurrentBeat(0);
-      return;
+  // Handle WebView beat changes
+  const handleBeatChange = (beat: number) => {
+    setCurrentBeat(beat);
+  };
+
+  // Handle WebView play state changes
+  const handlePlayStateChange = (playing: boolean) => {
+    // Only update if the state is actually different to prevent infinite loops
+    if (isPlaying !== playing) {
+      setIsPlaying(playing);
     }
-    
-    // Ensure audio session is activated before playing
-    activateAudioSession();
-    
-    // Play the first beat immediately when starting
-    playHiClick();
-    setCurrentBeat(0);
-    
-    // Timer callback
-    const onTick = () => {
-      setCurrentBeat(prev => {
-        const nextBeat = (prev + 1) % numerator;
-        // Play sound (downbeat = 0)
-        if (nextBeat === 0) {
-          playHiClick();
-        } else {
-          playLoClick();
-        }
-        return nextBeat;
-      });
-    };
-    // Start timer
-    timerRef.current = new Timer(onTick, beatDuration, { immediate: false });
-    timerRef.current.start();
-    return () => {
-      timerRef.current?.stop();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlaying, numerator, denominator, tempo, playHiClick, playLoClick]);
+  };
+
+  // Request audio permission when needed (only once)
+  useEffect(() => {
+    if (!hasPermission && !isRequesting) {
+      requestPermission();
+    }
+  }, [hasPermission]); // Remove requestPermission from dependencies
 
   // Tempo bar segments
   const tempoBar = Array.from({ length: numerator });
@@ -178,6 +147,17 @@ export default function MetronomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      {/* Hidden WebView for audio timing */}
+      <View style={styles.hiddenWebView}>
+        <WebViewMetronome
+          tempo={tempo}
+          timeSignature={{ numerator, denominator }}
+          isPlaying={isPlaying}
+          onBeatChange={handleBeatChange}
+          onPlayStateChange={handlePlayStateChange}
+        />
+      </View>
+      
       {/* Tap BPM (A) */}
       <TouchableOpacity 
         style={[styles.topLeftButton, isTapBpmActive && { borderColor: colors.primary, backgroundColor: colors.primary + '20' }]} 
@@ -199,13 +179,63 @@ export default function MetronomeScreen() {
       >
         <MaterialCommunityIcons name="gesture-tap" size={48} color={isTapBpmActive ? colors.primary : colors.icon} />
       </TouchableOpacity>
-      {/* Subdivision (B) */}
-      <TouchableOpacity style={styles.topRightButton} accessibilityLabel="Subdivision" accessibilityRole="button" activeOpacity={0.8} onPress={() => setComingSoon('Subdivision')}>
-        <MaterialCommunityIcons name="music" size={48} color={colors.icon} />
-      </TouchableOpacity>
+      {/* Time Signature Selector (moved to top right) */}
+      <View style={styles.timeSignatureContainerAbsolute}>
+        <View style={styles.chevronRow}>
+          <IconButton
+            icon="chevron-left"
+            size={29}
+            onPress={() => setNumerator(Math.max(NUMERATOR_MIN, numerator - 1))}
+            disabled={numerator === NUMERATOR_MIN}
+          />
+          <Text
+            variant="displayLarge"
+            style={[styles.timeSigNumber, { fontSize: 38 }]}
+            onPress={() => { setEditTimeSig('numerator'); setEditValue(String(numerator)); }}
+          >
+            {numerator}
+          </Text>
+          <IconButton
+            icon="chevron-right"
+            size={29}
+            onPress={() => setNumerator(Math.min(NUMERATOR_MAX, numerator + 1))}
+            disabled={numerator === NUMERATOR_MAX}
+          />
+        </View>
+        <View style={[styles.horizontalBar, { width: 72, height: 2.4 }]} />
+        <View style={styles.chevronRow}>
+          <IconButton
+            icon="chevron-left"
+            size={29}
+            onPress={() => {
+              const newIdx = Math.max(0, denominatorIdx - 1);
+              setDenominatorIdx(newIdx);
+              setDenominator(DENOMINATORS[newIdx]);
+            }}
+            disabled={denominatorIdx === 0}
+          />
+          <Text
+            variant="displayLarge"
+            style={[styles.timeSigNumber, { fontSize: 38 }]}
+            onPress={() => { setEditTimeSig('denominator'); setEditValue(String(denominator)); }}
+          >
+            {denominator}
+          </Text>
+          <IconButton
+            icon="chevron-right"
+            size={29}
+            onPress={() => {
+              const newIdx = Math.min(DENOMINATORS.length - 1, denominatorIdx + 1);
+              setDenominatorIdx(newIdx);
+              setDenominator(DENOMINATORS[newIdx]);
+            }}
+            disabled={denominatorIdx === DENOMINATORS.length - 1}
+          />
+        </View>
+      </View>
 
       {/* Main vertical stack: tempo section, play button, tempo bar */}
-      <View style={{ marginTop: -40 }}>
+      <View style={{ marginTop: 40 }}>
         <View style={styles.tempoContainer}>
           <View style={styles.tempoLabel}>
             <Text
@@ -276,65 +306,15 @@ export default function MetronomeScreen() {
         </View>
       </View>
 
-      {/* Sound Button (C) */}
-      <TouchableOpacity style={styles.bottomLeftButton} accessibilityLabel="Sound" accessibilityRole="button" activeOpacity={0.8} onPress={() => setComingSoon('Sound')}>
+      {/* Sound Button (C) - Hidden */}
+      {/* <TouchableOpacity style={styles.bottomLeftButton} accessibilityLabel="Sound" accessibilityRole="button" activeOpacity={0.8} onPress={() => setComingSoon('Sound')}>
         <MaterialCommunityIcons name="volume-high" size={40} color={colors.icon} />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
-      {/* Time Signature Selector (moved to bottom right) */}
-      <View style={styles.timeSignatureContainerAbsolute}>
-        <View style={styles.chevronRow}>
-          <IconButton
-            icon="chevron-left"
-            size={29}
-            onPress={() => setNumerator(Math.max(NUMERATOR_MIN, numerator - 1))}
-            disabled={numerator === NUMERATOR_MIN}
-          />
-          <Text
-            variant="displayLarge"
-            style={[styles.timeSigNumber, { fontSize: 38 }]}
-            onPress={() => { setEditTimeSig('numerator'); setEditValue(String(numerator)); }}
-          >
-            {numerator}
-          </Text>
-          <IconButton
-            icon="chevron-right"
-            size={29}
-            onPress={() => setNumerator(Math.min(NUMERATOR_MAX, numerator + 1))}
-            disabled={numerator === NUMERATOR_MAX}
-          />
-        </View>
-        <View style={[styles.horizontalBar, { width: 72, height: 2.4 }]} />
-        <View style={styles.chevronRow}>
-          <IconButton
-            icon="chevron-left"
-            size={29}
-            onPress={() => {
-              const newIdx = Math.max(0, denominatorIdx - 1);
-              setDenominatorIdx(newIdx);
-              setDenominator(DENOMINATORS[newIdx]);
-            }}
-            disabled={denominatorIdx === 0}
-          />
-          <Text
-            variant="displayLarge"
-            style={[styles.timeSigNumber, { fontSize: 38 }]}
-            onPress={() => { setEditTimeSig('denominator'); setEditValue(String(denominator)); }}
-          >
-            {denominator}
-          </Text>
-          <IconButton
-            icon="chevron-right"
-            size={29}
-            onPress={() => {
-              const newIdx = Math.min(DENOMINATORS.length - 1, denominatorIdx + 1);
-              setDenominatorIdx(newIdx);
-              setDenominator(DENOMINATORS[newIdx]);
-            }}
-            disabled={denominatorIdx === DENOMINATORS.length - 1}
-          />
-        </View>
-      </View>
+      {/* Subdivision (B) - Hidden - moved to bottom right */}
+      {/* <TouchableOpacity style={styles.bottomRightButton} accessibilityLabel="Subdivision" accessibilityRole="button" activeOpacity={0.8} onPress={() => setComingSoon('Subdivision')}>
+        <MaterialCommunityIcons name="music" size={48} color={colors.icon} />
+      </TouchableOpacity> */}
 
       {/* Coming Soon Modal */}
       <ComingSoonModal visible={!!comingSoon} title={comingSoon || ''} onClose={() => setComingSoon(null)} />
@@ -492,12 +472,36 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
+  hiddenWebView: {
+    position: 'absolute',
+    top: -1000,
+    left: -1000,
+    width: 1,
+    height: 1,
+    opacity: 0,
+    zIndex: -1,
+  },
   timeSignatureContainerAbsolute: {
     position: 'absolute',
-    bottom: vh(14),
+    top: vh(8),
     right: vw(2),
     alignItems: 'center',
     borderRadius: 24,
     padding: 8,
+  },
+  bottomRightButton: {
+    position: 'absolute',
+    bottom: vh(14),
+    right: vw(8),
+    padding: vw(4),
+    borderRadius: vw(8),
+    borderWidth: 2,
+    borderColor: AppTheme.colors.icon,
+    backgroundColor: 'rgba(21,23,24,0.92)',
+    shadowColor: AppTheme.colors.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
   },
 }); 
