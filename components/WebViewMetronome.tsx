@@ -1,179 +1,532 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 interface WebViewMetronomeProps {
-  tempo: number;
-  timeSignature: { numerator: number; denominator: number };
-  isPlaying: boolean;
-  onBeatChange?: (beat: number) => void;
-  onPlayStateChange?: (isPlaying: boolean) => void;
-  onMeasureChange?: (measure: number) => void;
+  themeColors: {
+    background: string;
+    surface: string;
+    primary: string;
+    text: string;
+    icon: string;
+    accent: string;
+    orange: string;
+  };
 }
 
-const WebViewMetronome: React.FC<WebViewMetronomeProps> = ({
-  tempo,
-  timeSignature,
-  isPlaying,
-  onBeatChange,
-  onPlayStateChange,
-  onMeasureChange,
-}) => {
+const WebViewMetronome: React.FC<WebViewMetronomeProps> = ({ themeColors }) => {
   const webViewRef = useRef<WebView>(null);
 
-  // HTML content for the WebView metronome
+  // HTML content for the complete metronome UI
   const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Metronome</title>
     <style>
-        body {
+        :root {
+            --background: ${themeColors.background};
+            --surface: ${themeColors.surface};
+            --primary: ${themeColors.primary};
+            --text: ${themeColors.text};
+            --icon: ${themeColors.icon};
+            --accent: ${themeColors.accent};
+            --orange: ${themeColors.orange};
+        }
+        html {
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        * {
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #1a1a1a;
-            color: #ffffff;
+            background-color: var(--background);
+            color: var(--text);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
+            padding: 20px;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
         
         .container {
             text-align: center;
             width: 100%;
             max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
         
         .tempo-display {
             font-size: 48px;
             font-weight: bold;
             margin-bottom: 20px;
-            color: #ffffff;
+            color: var(--text);
+            cursor: pointer;
         }
         
-        .time-signature {
+        .tempo-slider-container {
+            width: 100%;
+            margin: 20px 0;
+        }
+        
+        .slider-row {
             display: flex;
             align-items: center;
-            justify-content: center;
-            margin-bottom: 30px;
-            font-size: 24px;
-            font-weight: bold;
+            gap: 10px;
+            margin-bottom: 10px;
         }
         
-        .numerator, .denominator {
-            padding: 10px 20px;
-            background-color: #333;
-            border-radius: 8px;
-            margin: 0 10px;
-            min-width: 60px;
-            text-align: center;
+        .slider {
+            flex: 1;
+            height: 40px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #2a2a2a;
+            outline: none;
+            border-radius: 20px;
+            padding: 0 10px;
         }
         
-        .fraction-line {
-            width: 40px;
-            height: 2px;
-            background-color: #666;
-            margin: 0 10px;
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
         }
         
-        .tempo-bar {
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+        }
+        
+        .tempo-controls {
             display: flex;
-            justify-content: center;
-            gap: 8px;
-            margin-bottom: 30px;
+            align-items: center;
+            gap: 10px;
         }
         
-        .beat-circle {
+        .tempo-btn {
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background-color: #333;
-            border: 2px solid #555;
-            transition: all 0.1s ease;
+            background: var(--surface);
+            border: none;
+            color: var(--text);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         
-        .beat-circle.active {
-            background-color: #007AFF;
-            border-color: #007AFF;
-            transform: scale(1.1);
+        .tempo-btn:hover {
+            background: var(--primary);
         }
         
-        .beat-circle.downbeat {
-            background-color: #FF3B30;
-            border-color: #FF3B30;
-        }
-        
-        .beat-circle.downbeat.active {
-            background-color: #FF6B6B;
-            border-color: #FF6B6B;
-            transform: scale(1.1);
+        .tempo-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
         .play-button {
-            width: 80px;
-            height: 80px;
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
-            background-color: #007AFF;
+            background: var(--accent);
             border: none;
             color: white;
-            font-size: 24px;
+            font-size: 48px;
             cursor: pointer;
             transition: all 0.2s ease;
+            margin: 30px 0;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .play-button:hover {
-            background-color: #0056CC;
+            background: var(--primary);
             transform: scale(1.05);
         }
         
         .play-button.playing {
-            background-color: #FF3B30;
+            background: var(--orange);
         }
         
         .play-button.playing:hover {
-            background-color: #CC2E25;
+            background: #e6951f;
+        }
+        
+        .play-icon {
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 12px 0 12px 20px;
+            border-color: transparent transparent transparent #ffffff;
+            margin-left: 4px;
+        }
+        
+        .stop-icon {
+            width: 16px;
+            height: 16px;
+            background-color: #ffffff;
+            border-radius: 2px;
+        }
+        
+        .tap-bpm-btn {
+            position: absolute;
+            top: 8vh;
+            left: 20px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 2px solid var(--icon);
+            color: var(--text);
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+
+        
+        .tap-bpm-btn:hover {
+            border-color: var(--accent);
+            background: rgba(187,134,252,0.2);
+        }
+        
+        .tap-bpm-btn.active {
+            border-color: var(--accent);
+            background: rgba(187,134,252,0.2);
+        }
+        
+        .tap-bpm-btn::before {
+            content: "";
+            width: 24px;
+            height: 24px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 11l3 3l8-8'/%3E%3Cpath d='M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            display: inline-block;
+        }
+        
+        .subdivision-btn {
+            position: absolute;
+            top: 8vh;
+            right: 20px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 2px solid var(--icon);
+            color: var(--text);
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+
+        
+        .subdivision-btn:hover {
+            border-color: var(--accent);
+            background: rgba(187,134,252,0.2);
+        }
+        
+        .button-label {
+            position: absolute;
+            font-size: 12px;
+            color: var(--icon);
+            font-weight: 500;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .tap-bpm-label {
+            top: calc(8vh + 90px);
+            left: 20px;
+            width: 80px;
+        }
+        
+        .subdivision-label {
+            top: calc(8vh + 90px);
+            right: 20px;
+            width: 80px;
+        }
+        
+        .subdivision-btn::before {
+            content: "";
+            width: 24px;
+            height: 24px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5l12-2v13'/%3E%3Ccircle cx='6' cy='18' r='3'/%3E%3Ccircle cx='18' cy='16' r='3'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            display: inline-block;
+        }
+        
+        .subdivision-option {
+            background: var(--surface);
+            border: 2px solid var(--icon);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 8px 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .subdivision-option:hover {
+            border-color: var(--accent);
+            background: rgba(187,134,252,0.1);
+        }
+        
+        .subdivision-option.selected {
+            border-color: var(--accent);
+            background: rgba(187,134,252,0.2);
+        }
+        
+        .subdivision-title {
+            color: var(--text);
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .subdivision-icon {
+            font-size: 24px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        
+        .subdivision-description {
+            color: var(--icon);
+            font-size: 14px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 32px;
+            width: 320px;
+            text-align: center;
+        }
+        
+        .modal-title {
+            color: var(--text);
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        
+        .modal-input {
+            background: var(--background);
+            color: var(--text);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 28px;
+            width: 120px;
+            text-align: center;
+            border: 1px solid var(--icon);
+            margin-bottom: 12px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+        
+        .modal-btn {
+            border-radius: 8px;
+            padding: 10px 24px;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        .modal-btn.cancel {
+            background: var(--icon);
+            color: var(--text);
+        }
+        
+        .modal-btn.save {
+            background: var(--accent);
+            color: var(--text);
+        }
+        
+        .modal-btn.save:disabled {
+            background: #888;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Tap BPM Button -->
+        <button class="tap-bpm-btn" id="tapBpmBtn" title="Tap BPM"></button>
+        <div class="button-label tap-bpm-label">Tap BPM</div>
+        
+        <!-- Subdivision Button -->
+        <button class="subdivision-btn" id="subdivisionBtn" title="Subdivision"></button>
+        <div class="button-label subdivision-label">Subdivision</div>
+        
+        <!-- Tempo Display -->
         <div class="tempo-display" id="tempoDisplay">120 BPM</div>
         
-        <div class="time-signature">
-            <div class="numerator" id="numerator">4</div>
-            <div class="fraction-line"></div>
-            <div class="denominator" id="denominator">4</div>
+        <!-- Tempo Slider -->
+        <div class="tempo-slider-container">
+            <div class="slider-row">
+                <button class="tempo-btn" id="minusBtn">−</button>
+                <input type="range" class="slider" id="tempoSlider" min="40" max="240" value="120" step="1">
+                <button class="tempo-btn" id="plusBtn">+</button>
+            </div>
         </div>
         
-        <div class="tempo-bar" id="tempoBar">
-            <!-- Beat circles will be generated here -->
+        <!-- Play Button -->
+        <button class="play-button" id="playButton">
+            <div class="play-icon"></div>
+        </button>
+    </div>
+    
+    <!-- BPM Edit Modal -->
+    <div class="modal" id="bpmModal">
+        <div class="modal-content">
+            <div class="modal-title">Edit BPM</div>
+            <input type="text" class="modal-input" id="bpmInput" value="120" inputmode="numeric" pattern="[0-9]*">
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="cancelBtn">Cancel</button>
+                <button class="modal-btn save" id="saveBtn">Save</button>
+            </div>
         </div>
-        
-        <button class="play-button" id="playButton">▶</button>
+    </div>
+    
+    <!-- Subdivision Modal -->
+    <div class="modal" id="subdivisionModal">
+        <div class="modal-content">
+            <div class="modal-title">Choose Subdivision</div>
+            <div class="subdivision-option" data-subdivision="1">
+                <div class="subdivision-icon">♪</div>
+                <div class="subdivision-title">None</div>
+            </div>
+            <div class="subdivision-option" data-subdivision="2">
+                <div class="subdivision-icon">♫</div>
+                <div class="subdivision-title">Eighth</div>
+            </div>
+            <div class="subdivision-option" data-subdivision="3">
+                <div class="subdivision-icon">♫♪</div>
+                <div class="subdivision-title">Triplet</div>
+            </div>
+            <div class="subdivision-option" data-subdivision="4">
+                <div class="subdivision-icon">♫♫</div>
+                <div class="subdivision-title">Sixteenth</div>
+            </div>
+            <div class="subdivision-option" data-subdivision="5">
+                <div class="subdivision-icon">♫♫♪</div>
+                <div class="subdivision-title">Quintuplet</div>
+            </div>
+            <div class="subdivision-option" data-subdivision="6">
+                <div class="subdivision-icon">♫♫♫</div>
+                <div class="subdivision-title">Sixtuplet</div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="subdivisionCancelBtn">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <script>
         let audioContext;
-        let oscillator;
-        let gainNode;
         let isPlaying = false;
-        let currentBeat = 0;
-        let currentMeasure = 0;
         let tempo = 120;
-        let timeSignature = { numerator: 4, denominator: 4 };
+        let subdivision = 1; // 1 = no subdivision, 2 = eighth notes, 3 = triplets, etc.
+        let beatCount = 0; // Track which subdivision we're on within a beat
         let intervalId = null;
+        let tapTimes = [];
+        let isTapBpmActive = false;
+        let tapBpmTimeout = null;
         
         // Initialize audio context
         function initAudio() {
             try {
-                // Create audio context with proper fallbacks
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                
                 console.log('Audio context initialized successfully');
                 return true;
             } catch (e) {
@@ -189,7 +542,6 @@ const WebViewMetronome: React.FC<WebViewMetronomeProps> = ({
                 return;
             }
             
-            console.log('Playing click:', isDownbeat ? 'downbeat' : 'offbeat');
             const startTime = audioContext.currentTime;
             const duration = 0.08;
             
@@ -199,71 +551,52 @@ const WebViewMetronome: React.FC<WebViewMetronomeProps> = ({
                 const oscillator2 = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
                 
+                oscillator1.frequency.setValueAtTime(800, startTime);
+                oscillator2.frequency.setValueAtTime(1200, startTime);
+                
+                gainNode.gain.setValueAtTime(0.3, startTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+                
                 oscillator1.connect(gainNode);
                 oscillator2.connect(gainNode);
                 gainNode.connect(audioContext.destination);
-                
-                // Primary frequency
-                oscillator1.frequency.setValueAtTime(800, startTime);
-                oscillator1.type = 'sine';
-                
-                // Harmonic frequency for richer sound
-                oscillator2.frequency.setValueAtTime(1200, startTime);
-                oscillator2.type = 'sine';
-                
-                // Gain envelope for downbeat
-                gainNode.gain.setValueAtTime(0, startTime);
-                gainNode.gain.linearRampToValueAtTime(0.4, startTime + 0.005);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
                 
                 oscillator1.start(startTime);
                 oscillator2.start(startTime);
                 oscillator1.stop(startTime + duration);
                 oscillator2.stop(startTime + duration);
             } else {
-                // Offbeat: simpler, lower frequency
+                // Offbeat: simpler sound
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
                 
+                oscillator.frequency.setValueAtTime(600, startTime);
+                gainNode.gain.setValueAtTime(0.2, startTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+                
                 oscillator.connect(gainNode);
                 gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.setValueAtTime(600, startTime);
-                oscillator.type = 'sine';
-                
-                // Gain envelope for offbeat
-                gainNode.gain.setValueAtTime(0, startTime);
-                gainNode.gain.linearRampToValueAtTime(0.25, startTime + 0.005);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
                 
                 oscillator.start(startTime);
                 oscillator.stop(startTime + duration);
             }
         }
         
-        // Calculate interval based on tempo and time signature
+        // Calculate interval based on tempo and subdivision
         function calculateInterval() {
-            const beatDuration = 60000 / (tempo * (4 / timeSignature.denominator));
-            return beatDuration;
-        }
-        
-        // Update tempo bar
-        function updateTempoBar() {
-            const tempoBar = document.getElementById('tempoBar');
-            tempoBar.innerHTML = '';
-            
-            for (let i = 0; i < timeSignature.numerator; i++) {
-                const circle = document.createElement('div');
-                circle.className = 'beat-circle';
-                if (i === 0) circle.classList.add('downbeat');
-                if (i === currentBeat) circle.classList.add('active');
-                tempoBar.appendChild(circle);
-            }
+            const baseInterval = 60000 / tempo; // Convert BPM to milliseconds
+            return baseInterval / subdivision; // Apply subdivision
         }
         
         // Start metronome
         function startMetronome() {
-            if (isPlaying) return;
+            console.log('Starting metronome');
+            
+            if (isPlaying) {
+                console.log('Already playing, stopping first');
+                stopMetronome();
+                return;
+            }
             
             // Initialize audio context if needed
             if (!audioContext) {
@@ -287,95 +620,201 @@ const WebViewMetronome: React.FC<WebViewMetronomeProps> = ({
         }
         
         function startMetronomeInternal() {
-            isPlaying = true;
-            currentBeat = 0;
-            currentMeasure = 0;
+            console.log('Starting metronome internal');
             
-            const interval = calculateInterval();
-            
-            // Send initial state to React Native
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'playStateChange',
-                isPlaying: true
-            }));
-            
-            // Play first beat immediately
-            playClick(true);
-            updateTempoBar();
-            
-            intervalId = setInterval(() => {
-                currentBeat++;
-                if (currentBeat >= timeSignature.numerator) {
-                    currentBeat = 0;
-                    currentMeasure++;
-                    
-                    // Send measure change to React Native
-                    window.ReactNativeWebView.postMessage(JSON.stringify({
-                        type: 'measureChange',
-                        measure: currentMeasure
-                    }));
-                }
-                
-                const isDownbeat = currentBeat === 0;
-                playClick(isDownbeat);
-                
-                // Send beat change to React Native
-                window.ReactNativeWebView.postMessage(JSON.stringify({
-                    type: 'beatChange',
-                    beat: currentBeat,
-                    measure: currentMeasure
-                }));
-                
-                updateTempoBar();
-            }, interval);
-            
-            document.getElementById('playButton').textContent = '⏸';
-            document.getElementById('playButton').classList.add('playing');
-        }
-        
-        // Stop metronome
-        function stopMetronome() {
-            if (!isPlaying) return;
-            
-            isPlaying = false;
-            
+            // Clear any existing interval first
             if (intervalId) {
                 clearInterval(intervalId);
                 intervalId = null;
             }
             
-            // Send state change to React Native
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'playStateChange',
-                isPlaying: false
-            }));
+            isPlaying = true;
             
-            currentBeat = 0;
-            currentMeasure = 0;
-            updateTempoBar();
-            document.getElementById('playButton').textContent = '▶';
-            document.getElementById('playButton').classList.remove('playing');
+            const interval = calculateInterval();
+            
+            // Play first beat immediately
+            beatCount = 0;
+            playClick(true);
+            beatCount++;
+            
+            // Start the interval
+            intervalId = setInterval(() => {
+                if (isPlaying) {
+                    // First subdivision of each beat gets high note, others get low note
+                    const isDownbeat = (beatCount % subdivision) === 0;
+                    playClick(isDownbeat);
+                    beatCount++;
+                }
+            }, interval);
+            
+            document.getElementById('playButton').innerHTML = '<div class="stop-icon"></div>';
+            document.getElementById('playButton').classList.add('playing');
+            document.getElementById('playButton').style.background = 'var(--orange)';
         }
         
-        // Update tempo and time signature
-        function updateSettings(newTempo, newTimeSignature) {
-            tempo = newTempo;
-            timeSignature = newTimeSignature;
+        // Stop metronome
+        function stopMetronome() {
+            console.log('Stopping metronome');
             
+            // Clear interval first
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+            
+            // Update state
+            isPlaying = false;
+            
+            // Update UI
+            document.getElementById('playButton').innerHTML = '<div class="play-icon"></div>';
+            document.getElementById('playButton').classList.remove('playing');
+            document.getElementById('playButton').style.background = 'var(--accent)';
+        }
+        
+        // Update tempo display
+        function updateTempoDisplay() {
             document.getElementById('tempoDisplay').textContent = tempo + ' BPM';
-            document.getElementById('numerator').textContent = timeSignature.numerator;
-            document.getElementById('denominator').textContent = timeSignature.denominator;
-            
-            updateTempoBar();
+            document.getElementById('tempoSlider').value = tempo;
+        }
+        
+        // Update tempo
+        function updateTempo(newTempo) {
+            tempo = newTempo;
+            updateTempoDisplay();
             
             // Restart if currently playing
             if (isPlaying) {
                 stopMetronome();
-                startMetronome();
+                setTimeout(() => {
+                    startMetronome();
+                }, 10);
             }
         }
         
-        // Handle play button click
+        // Tap BPM functionality
+        function startTapBpm() {
+            isTapBpmActive = true;
+            tapTimes = [];
+            document.getElementById('tapBpmBtn').classList.add('active');
+            
+            // Set timeout to auto-disengage after 5 seconds
+            if (tapBpmTimeout) {
+                clearTimeout(tapBpmTimeout);
+            }
+            tapBpmTimeout = setTimeout(() => {
+                stopTapBpm();
+            }, 5000);
+        }
+        
+        function tap() {
+            const now = Date.now();
+            tapTimes.push(now);
+            
+            // Keep only last 8 taps
+            if (tapTimes.length > 8) {
+                tapTimes.shift();
+            }
+            
+            // Reset timeout on each tap
+            if (tapBpmTimeout) {
+                clearTimeout(tapBpmTimeout);
+            }
+            tapBpmTimeout = setTimeout(() => {
+                stopTapBpm();
+            }, 5000);
+            
+            // Calculate BPM if we have at least 2 taps
+            if (tapTimes.length >= 2) {
+                const intervals = [];
+                for (let i = 1; i < tapTimes.length; i++) {
+                    intervals.push(tapTimes[i] - tapTimes[i - 1]);
+                }
+                
+                const avgInterval = intervals.reduce((a, b) => a + b) / intervals.length;
+                const newTempo = Math.round(60000 / avgInterval);
+                
+                // Clamp to valid range
+                const clampedTempo = Math.max(40, Math.min(240, newTempo));
+                updateTempo(clampedTempo);
+            }
+        }
+        
+        function stopTapBpm() {
+            isTapBpmActive = false;
+            tapTimes = [];
+            const button = document.getElementById('tapBpmBtn');
+            button.classList.remove('active');
+            
+            // Ensure color reset
+            button.style.borderColor = '';
+            button.style.backgroundColor = '';
+            
+            // Clear timeout
+            if (tapBpmTimeout) {
+                clearTimeout(tapBpmTimeout);
+                tapBpmTimeout = null;
+            }
+        }
+        
+        // Modal functionality
+        function showBpmModal() {
+            document.getElementById('bpmInput').value = tempo;
+            document.getElementById('bpmModal').style.display = 'flex';
+            document.getElementById('bpmInput').focus();
+            document.getElementById('bpmInput').select();
+        }
+        
+        function hideBpmModal() {
+            document.getElementById('bpmModal').style.display = 'none';
+        }
+        
+        function saveBpm() {
+            const inputValue = document.getElementById('bpmInput').value;
+            const newTempo = parseInt(inputValue);
+            if (inputValue && !isNaN(newTempo) && newTempo >= 40 && newTempo <= 240) {
+                updateTempo(newTempo);
+                hideBpmModal();
+            }
+        }
+        
+        // Subdivision modal functions
+        function showSubdivisionModal() {
+            document.getElementById('subdivisionModal').style.display = 'flex';
+            updateSubdivisionSelection();
+        }
+        
+        function hideSubdivisionModal() {
+            document.getElementById('subdivisionModal').style.display = 'none';
+        }
+        
+        function updateSubdivisionSelection() {
+            // Remove selected class from all options
+            document.querySelectorAll('.subdivision-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Add selected class to current subdivision
+            const currentOption = document.querySelector('[data-subdivision="' + subdivision + '"]');
+            if (currentOption) {
+                currentOption.classList.add('selected');
+            }
+        }
+        
+        function selectSubdivision(newSubdivision) {
+            subdivision = newSubdivision;
+            
+            // Restart if currently playing
+            if (isPlaying) {
+                stopMetronome();
+                setTimeout(() => {
+                    startMetronome();
+                }, 10);
+            }
+            
+            hideSubdivisionModal();
+        }
+        
+        // Event listeners
         document.getElementById('playButton').addEventListener('click', () => {
             if (isPlaying) {
                 stopMetronome();
@@ -384,11 +823,80 @@ const WebViewMetronome: React.FC<WebViewMetronomeProps> = ({
             }
         });
         
+        document.getElementById('tempoSlider').addEventListener('input', (e) => {
+            updateTempo(parseInt(e.target.value));
+        });
+        
+        document.getElementById('minusBtn').addEventListener('click', () => {
+            if (tempo > 40) {
+                updateTempo(tempo - 1);
+            }
+        });
+        
+        document.getElementById('plusBtn').addEventListener('click', () => {
+            if (tempo < 240) {
+                updateTempo(tempo + 1);
+            }
+        });
+        
+        document.getElementById('tempoDisplay').addEventListener('click', showBpmModal);
+        
+        document.getElementById('tapBpmBtn').addEventListener('click', () => {
+            if (isTapBpmActive) {
+                tap();
+            } else {
+                startTapBpm();
+            }
+        });
+        
+        document.getElementById('tapBpmBtn').addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            if (isTapBpmActive) {
+                stopTapBpm();
+            }
+        });
+        
+        document.getElementById('subdivisionBtn').addEventListener('click', showSubdivisionModal);
+        
+        document.getElementById('cancelBtn').addEventListener('click', hideBpmModal);
+        document.getElementById('saveBtn').addEventListener('click', saveBpm);
+        
+        document.getElementById('subdivisionCancelBtn').addEventListener('click', hideSubdivisionModal);
+        
+        document.getElementById('bpmInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                saveBpm();
+            }
+        });
+        
+        // Close modal when clicking outside
+        document.getElementById('bpmModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('bpmModal')) {
+                hideBpmModal();
+            }
+        });
+        
+        document.getElementById('subdivisionModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('subdivisionModal')) {
+                hideSubdivisionModal();
+            }
+        });
+        
+        // Subdivision option click handlers
+        document.querySelectorAll('.subdivision-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const newSubdivision = parseInt(option.getAttribute('data-subdivision'));
+                selectSubdivision(newSubdivision);
+            });
+        });
+        
         // Initialize
-        updateTempoBar();
+        console.log('WebView JavaScript initialized');
+        updateTempoDisplay();
         
         // Test audio context on page load
         setTimeout(() => {
+            console.log('WebView timeout triggered');
             if (!audioContext) {
                 initAudio();
             }
@@ -399,78 +907,13 @@ const WebViewMetronome: React.FC<WebViewMetronomeProps> = ({
             }
         }, 1000);
         
-        // Listen for messages from React Native
-        window.addEventListener('message', (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.type === 'updateSettings') {
-                    updateSettings(data.tempo, data.timeSignature);
-                } else if (data.type === 'setPlayState') {
-                    if (data.isPlaying && !isPlaying) {
-                        startMetronome();
-                    } else if (!data.isPlaying && isPlaying) {
-                        stopMetronome();
-                    }
-                }
-            } catch (e) {
-                console.error('Error parsing message:', e);
-            }
-        });
+
     </script>
 </body>
 </html>
   `;
 
-  // Send settings to WebView
-  const sendSettings = useCallback(() => {
-    if (webViewRef.current) {
-      webViewRef.current.postMessage(JSON.stringify({
-        type: 'updateSettings',
-        tempo,
-        timeSignature
-      }));
-    }
-  }, [tempo, timeSignature]);
 
-  // Send play state to WebView
-  const sendPlayState = useCallback(() => {
-    if (webViewRef.current) {
-      webViewRef.current.postMessage(JSON.stringify({
-        type: 'setPlayState',
-        isPlaying
-      }));
-    }
-  }, [isPlaying]);
-
-  // Handle messages from WebView
-  const handleMessage = useCallback((event: any) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      
-      switch (data.type) {
-        case 'beatChange':
-          onBeatChange?.(data.beat);
-          break;
-        case 'measureChange':
-          onMeasureChange?.(data.measure);
-          break;
-        case 'playStateChange':
-          onPlayStateChange?.(data.isPlaying);
-          break;
-      }
-    } catch (error) {
-      console.error('Error parsing WebView message:', error);
-    }
-  }, [onBeatChange, onMeasureChange, onPlayStateChange]);
-
-  // Update WebView when props change
-  useEffect(() => {
-    sendSettings();
-  }, [sendSettings]);
-
-  useEffect(() => {
-    sendPlayState();
-  }, [sendPlayState]);
 
   return (
     <View style={styles.container}>
@@ -478,11 +921,12 @@ const WebViewMetronome: React.FC<WebViewMetronomeProps> = ({
         ref={webViewRef}
         source={{ html: htmlContent }}
         style={styles.webview}
-        onMessage={handleMessage}
         javaScriptEnabled={true}
         domStorageEnabled={true}
         allowsInlineMediaPlayback={true}
         mediaPlaybackRequiresUserAction={false}
+        onLoad={() => console.log('WebView loaded')}
+        onError={(error) => console.log('WebView error:', error)}
       />
     </View>
   );
