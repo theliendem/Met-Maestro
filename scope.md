@@ -494,3 +494,297 @@ Before you make a build, go into eas.json and make sure that build.development.s
 
 **Result:** Bundle identifier is now properly recognized during production builds, resolving the archive error. 
 
+---
+
+# **Phase 6: WebView Metronome UI Improvements (2025-01-13)**
+
+**Goal:** Transform the metronome into a fully self-contained WebView with modern UI, subdivision support, and enhanced user experience.
+
+## **Step 21: Complete WebView Metronome Redesign**
+
+### **21.1 Core Architecture Changes**
+1. **Self-contained WebView**: 
+   - Moved all UI and logic into WebView HTML/CSS/JS
+   - Eliminated React Native ↔ WebView communication issues
+   - Single source of truth for all metronome state
+
+2. **Theme Integration**:
+   - Added `themeColors` prop to pass AppTheme colors to WebView
+   - Created CSS variables for all theme colors (`--background`, `--surface`, `--primary`, `--text`, `--icon`, `--accent`, `--orange`)
+   - Replaced all hardcoded colors with theme variables
+
+### **21.2 UI/UX Improvements**
+
+#### **Touch and Interaction**
+- **Disabled zooming**: Added `maximum-scale=1.0, user-scalable=no` to viewport meta tag
+- **Prevented scrolling**: Added `overflow: hidden` and `position: fixed` to body
+- **Removed touch highlights**: Added `-webkit-tap-highlight-color: transparent`
+- **Prevented text selection**: Added `user-select: none` and related properties
+- **Removed keyboard accessory view**: Changed from `type="number"` to `type="text"` with `inputmode="numeric"` and `pattern="[0-9]*"`
+
+#### **Button Design**
+- **Larger buttons**: Increased from 60x60px to 80x80px
+- **External labels**: Moved labels outside circular buttons with proper positioning
+- **SVG icons**: Replaced emoji icons with proper SVG icons for tap BPM (checkmark) and subdivision (music note)
+- **Better typography**: Increased label font size to 12px and used darker color (`var(--icon)`)
+
+#### **Slider Improvements**
+- **Dark gray track**: Changed slider background to `#2a2a2a` for better contrast
+- **Padding**: Added `padding: 0 10px` to prevent thumb from touching edges
+- **Theme colors**: Slider thumb uses `var(--accent)` color
+
+#### **Play Button**
+- **CSS icons**: Replaced emoji with CSS-based play triangle and stop square
+- **Theme colors**: Play button uses `var(--accent)`, stop uses `var(--orange)`
+- **Explicit color management**: Added JavaScript to explicitly set colors on state changes
+
+### **21.3 Subdivision Feature**
+
+#### **Modal Design**
+- **Musical notation icons**: Used proper musical symbols (♪, ♫, ♫♪, ♫♫, etc.)
+- **Horizontal layout**: Icons on left, text on right with flexbox
+- **Theme integration**: All colors use theme variables
+- **Clean labels**: Removed "x clicks per beat" descriptions
+
+#### **Subdivision Options**
+1. **None** (♪) - Single click per beat
+2. **Eighth** (♫) - Two clicks per beat
+3. **Triplet** (♫♪) - Three clicks per beat
+4. **Sixteenth** (♫♫) - Four clicks per beat
+5. **Quintuplet** (♫♫♪) - Five clicks per beat
+6. **Sixtuplet** (♫♫♫) - Six clicks per beat
+
+#### **Audio Implementation**
+- **Beat counter**: Added `beatCount` to track subdivisions within each beat
+- **High/low notes**: First subdivision of each beat gets high note, others get low notes
+- **Interval calculation**: `calculateInterval()` now divides by subdivision count
+- **Auto-restart**: Metronome restarts when subdivision changes
+
+### **21.4 Tap BPM Enhancements**
+
+#### **Auto-disengagement**
+- **5-second timeout**: Automatically disengages after 5 seconds of inactivity
+- **Reset on tap**: Each tap resets the 5-second timer
+- **Manual stop**: Right-click to manually stop anytime
+- **Visual feedback**: Button color changes and resets properly
+
+#### **Technical Implementation**
+```javascript
+let tapBpmTimeout = null;
+
+function startTapBpm() {
+    // Set 5-second timeout
+    tapBpmTimeout = setTimeout(() => {
+        stopTapBpm();
+    }, 5000);
+}
+
+function tap() {
+    // Reset timeout on each tap
+    if (tapBpmTimeout) {
+        clearTimeout(tapBpmTimeout);
+    }
+    tapBpmTimeout = setTimeout(() => {
+        stopTapBpm();
+    }, 5000);
+}
+```
+
+### **21.5 Code Structure**
+
+#### **React Native Component**
+```typescript
+interface WebViewMetronomeProps {
+  themeColors: {
+    background: string;
+    surface: string;
+    primary: string;
+    text: string;
+    icon: string;
+    accent: string;
+    orange: string;
+  };
+}
+```
+
+#### **WebView HTML Structure**
+- **Complete UI**: All buttons, sliders, modals contained in HTML
+- **CSS variables**: Theme colors passed via CSS custom properties
+- **JavaScript logic**: All metronome functionality self-contained
+- **No external dependencies**: Pure HTML/CSS/JS implementation
+
+## **Step 22: Show Mode WebView Blueprint**
+
+### **22.1 Apply Same Architecture to Show Mode**
+
+#### **Core Changes**
+1. **Create `components/WebViewShow.tsx`**:
+   - Self-contained WebView with all show logic
+   - Theme integration with `themeColors` prop
+   - Complete UI for show management and playback
+
+2. **Update `app/(tabs)/show.tsx`**:
+   - Replace existing show logic with WebView component
+   - Pass theme colors as props
+   - Maintain show persistence and import/export functionality
+
+#### **Show Mode Specific Features**
+
+##### **Show Management UI**
+- **Show list**: Display saved shows with load/delete options
+- **Show editor**: Add/edit/delete measures with time signature and tempo
+- **Measure display**: Visual representation of show structure
+- **Import/export**: File handling for show data
+
+##### **Playback Features**
+- **Count-in**: 4-beat count-in before show starts
+- **Measure transitions**: Handle tempo and time signature changes
+- **Progress tracking**: Visual indication of current measure
+- **Completion detection**: Callback when show finishes
+
+##### **Audio Implementation**
+- **Subdivision support**: Apply same subdivision logic as metronome
+- **High/low notes**: First beat of each measure gets high note
+- **Tempo changes**: Smooth transitions between different tempos
+- **Time signature changes**: Handle different beat patterns
+
+#### **UI Components to Port**
+
+##### **Buttons and Controls**
+- **Play/stop button**: Same design as metronome with theme colors
+- **Tap BPM**: Apply same tap BPM functionality
+- **Subdivision**: Apply same subdivision modal and logic
+- **Show management buttons**: Load, save, delete, import, export
+
+##### **Modals and Dialogs**
+- **Measure editor modal**: Add/edit measure properties
+- **Show management modal**: Load/save/delete shows
+- **Import/export modal**: File selection and handling
+- **Settings modal**: Show-specific settings
+
+##### **Visual Elements**
+- **Show progress bar**: Visual indication of playback progress
+- **Measure indicators**: Highlight current measure
+- **Time signature display**: Show current time signature
+- **Tempo display**: Show current tempo with BPM
+
+#### **Technical Implementation**
+
+##### **WebView HTML Structure**
+```html
+<!-- Show Management -->
+<div class="show-list">
+  <!-- Saved shows -->
+</div>
+
+<!-- Show Editor -->
+<div class="show-editor">
+  <!-- Measure list -->
+  <!-- Add measure button -->
+</div>
+
+<!-- Playback Controls -->
+<div class="playback-controls">
+  <!-- Play button -->
+  <!-- Progress bar -->
+  <!-- Current measure display -->
+</div>
+
+<!-- Modals -->
+<div class="modal" id="measureEditorModal">
+  <!-- Measure editing form -->
+</div>
+```
+
+##### **JavaScript Logic**
+```javascript
+// Show data structure
+let currentShow = {
+  measures: [
+    { timeSignature: { numerator: 4, denominator: 4 }, tempo: 120 },
+    // ... more measures
+  ]
+};
+
+// Playback logic
+function startShow() {
+  // Count-in sequence
+  // Play through measures
+  // Handle transitions
+}
+
+// Subdivision support
+let subdivision = 1;
+let beatCount = 0;
+```
+
+##### **Theme Integration**
+```css
+:root {
+  --background: ${themeColors.background};
+  --surface: ${themeColors.surface};
+  --primary: ${themeColors.primary};
+  --text: ${themeColors.text};
+  --icon: ${themeColors.icon};
+  --accent: ${themeColors.accent};
+  --orange: ${themeColors.orange};
+}
+```
+
+### **22.2 Migration Steps**
+
+#### **Phase 1: Core WebView Setup**
+1. Create `components/WebViewShow.tsx` with basic structure
+2. Add theme integration and CSS variables
+3. Implement basic show data structure
+4. Add play/stop functionality
+
+#### **Phase 2: Show Management**
+1. Add show list display
+2. Implement show loading/saving
+3. Add measure editor modal
+4. Add import/export functionality
+
+#### **Phase 3: Playback Features**
+1. Implement count-in sequence
+2. Add measure-by-measure playback
+3. Handle tempo and time signature changes
+4. Add progress tracking
+
+#### **Phase 4: UI Polish**
+1. Apply same button designs as metronome
+2. Add subdivision support
+3. Implement tap BPM functionality
+4. Add all modals and dialogs
+
+#### **Phase 5: Integration**
+1. Update `app/(tabs)/show.tsx` to use WebView
+2. Maintain existing show persistence
+3. Test all functionality
+4. Ensure theme consistency
+
+### **22.3 Benefits of WebView Approach**
+
+#### **Technical Benefits**
+- **Consistent audio timing**: Web Audio API for precise timing
+- **No communication issues**: Self-contained logic eliminates sync problems
+- **Cross-platform consistency**: Same behavior on iOS and Android
+- **Better performance**: Reduced React Native ↔ WebView overhead
+
+#### **User Experience Benefits**
+- **Modern UI**: Professional, responsive design
+- **Theme integration**: Consistent with app theme
+- **Enhanced features**: Subdivision, tap BPM, better modals
+- **Improved accessibility**: Better touch targets and feedback
+
+#### **Development Benefits**
+- **Easier maintenance**: Single codebase for UI logic
+- **Better debugging**: WebView console for development
+- **Faster iteration**: HTML/CSS/JS changes without rebuilds
+- **Reduced complexity**: No message passing or state synchronization
+
+---
+
+**Expected Timeline:** 2-3 weeks for complete show mode migration
+**Priority:** High - will significantly improve user experience and code maintainability 
+
