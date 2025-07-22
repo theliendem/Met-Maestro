@@ -13,24 +13,25 @@ interface WebViewShowProps {
     accent: string;
     orange: string;
   };
-  shows?: Array<{
+  shows?: {
     id: string;
     name: string;
-    measures: Array<{
+    measures: {
       id: string;
       timeSignature: { numerator: number; denominator: number };
       tempo: number;
       count: number;
-    }>;
+    }[];
     createdAt: string;
     updatedAt: string;
-  }>;
+  }[];
   selectedShow?: string;
   onAddShow?: () => void;
   onSelectShow?: (showId: string) => void;
   onRenameShow?: (showId: string, newName: string) => void;
   onUpdateShowMeasures?: (showId: string, measures: any[]) => void;
   onDeleteShow?: (showId: string) => void;
+  onMessage?: (event: any) => void;
 }
 
 const WebViewShow: React.FC<WebViewShowProps> = ({ 
@@ -41,19 +42,17 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
   onSelectShow, 
   onRenameShow, 
   onUpdateShowMeasures, 
-  onDeleteShow 
+  onDeleteShow,
+  onMessage
 }) => {
   const webViewRef = useRef<WebView>(null);
   
   // Update WebView when shows data changes
   React.useEffect(() => {
-    console.log('Shows data changed:', shows, selectedShow);
     if (webViewRef.current) {
       // Use a timeout to ensure the WebView is ready
       setTimeout(() => {
-        console.log('Injecting JavaScript to update shows');
         webViewRef.current?.injectJavaScript(`
-          console.log('JavaScript injection received');
           if (window.updateShowsData) {
             window.updateShowsData(${JSON.stringify(shows)}, '${selectedShow}');
           }
@@ -199,9 +198,9 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             margin-bottom: 8px;
             background-color: var(--dark-gray);
             border-radius: 16px;
-            padding: 8px;
+            padding: 2vh 8px;
             box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            min-height: 36px;
+            height: calc(36px + 4vh);
             align-items: center;
         }
         
@@ -230,7 +229,7 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
         }
         
         .icon-button:hover {
-            background-color: var(--primary);
+            background-color: var(--accent);
         }
         
         .show-chip {
@@ -594,24 +593,7 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             color: var(--text);
         }
         
-        /* Snackbar */
-        .snackbar {
-            position: fixed;
-            bottom: 60px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--surface);
-            color: var(--text);
-            padding: 12px 16px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            z-index: 1000;
-            display: none;
-        }
-        
-        .snackbar.visible {
-            display: block;
-        }
+        /* Snackbar removed */
     </style>
 </head>
 <body>
@@ -664,58 +646,7 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             </div>
             
             <div class="measure-list" id="measureList">
-                <!-- Condensed view -->
-                <div class="measure-item">
-                    <div class="measure-info">
-                        <span>1 mes.</span>
-                        <span>4/4</span>
-                        <span>120 BPM</span>
-                    </div>
-                    <div class="measure-actions">
-                        <div class="icon-button-small" title="Move Up" style="opacity: 0.3;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="18,15 12,9 6,15"></polyline>
-                            </svg>
-                        </div>
-                        <div class="icon-button-small" title="Move Down">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6,9 12,15 18,9"></polyline>
-                            </svg>
-                        </div>
-                        <div class="icon-button-small" title="Edit">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="measure-item">
-                    <div class="measure-info">
-                        <span>1 mes.</span>
-                        <span>3/4</span>
-                        <span>100 BPM</span>
-                    </div>
-                    <div class="measure-actions">
-                        <div class="icon-button-small" title="Move Up">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="18,15 12,9 6,15"></polyline>
-                            </svg>
-                        </div>
-                        <div class="icon-button-small" title="Move Down" style="opacity: 0.3;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6,9 12,15 18,9"></polyline>
-                            </svg>
-                        </div>
-                        <div class="icon-button-small" title="Edit">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
+                <!-- Measures will be dynamically populated here -->
             </div>
         </div>
         
@@ -854,10 +785,7 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
         </div>
     </div>
     
-    <!-- Snackbar -->
-    <div class="snackbar" id="snackbar">
-        <span id="snackbarText">Message</span>
-    </div>
+    <!-- Snackbar removed -->
 
     <script>
         // Show data from React Native
@@ -932,38 +860,57 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
                 measureList.innerHTML = '<div class="empty-state">No measures in this show</div>';
                 return;
             }
-            
-            show.measures.forEach((measure, index) => {
+            let toRender;
+            if (condensedView) {
+                // Group consecutive measures with the same time signature and tempo
+                const clumped = [];
+                for (let i = 0; i < show.measures.length; i++) {
+                    const m = show.measures[i];
+                    if (
+                        clumped.length > 0 &&
+                        clumped[clumped.length - 1].timeSignature.numerator === m.timeSignature.numerator &&
+                        clumped[clumped.length - 1].timeSignature.denominator === m.timeSignature.denominator &&
+                        clumped[clumped.length - 1].tempo === m.tempo
+                    ) {
+                        clumped[clumped.length - 1].count += 1;
+                    } else {
+                        clumped.push({ ...m, count: 1 });
+                    }
+                }
+                toRender = clumped;
+            } else {
+                // Show each measure individually (no grouping)
+                toRender = show.measures.map(m => ({ ...m, count: 1 }));
+            }
+            toRender.forEach((measure, index) => {
                 const measureItem = document.createElement('div');
                 measureItem.className = 'measure-item';
                 measureItem.setAttribute('data-measure-id', measure.id);
                 
-                measureItem.innerHTML = \`
-                    <div class="measure-info">
-                        <span>\${measure.count} mes.</span>
-                        <span>\${measure.timeSignature.numerator}/\${measure.timeSignature.denominator}</span>
-                        <span>\${measure.tempo} BPM</span>
-                    </div>
-                    <div class="measure-actions">
-                        <div class="icon-button-small" title="Move Up" \${index === 0 ? 'style="opacity: 0.3;"' : ''}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="18,15 12,9 6,15"></polyline>
-                            </svg>
-                        </div>
-                        <div class="icon-button-small" title="Move Down" \${index === show.measures.length - 1 ? 'style="opacity: 0.3;"' : ''}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6,9 12,15 18,9"></polyline>
-                            </svg>
-                        </div>
-                        <div class="icon-button-small edit-measure-btn" title="Edit" data-measure-id="\${measure.id}">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                \`;
-                
+                measureItem.innerHTML =
+                    '<div class="measure-info">' +
+                        (condensedView ? '<span>' + measure.count + ' mes.</span>' : '') +
+                        '<span>' + measure.timeSignature.numerator + '/' + measure.timeSignature.denominator + '</span>' +
+                        '<span>' + measure.tempo + ' BPM</span>' +
+                    '</div>' +
+                    '<div class="measure-actions">' +
+                        '<div class="icon-button-small" title="Move Up"' + (index === 0 ? ' style="opacity: 0.3;"' : '') + '>' +
+                            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                                '<polyline points="18,15 12,9 6,15"></polyline>' +
+                            '</svg>' +
+                        '</div>' +
+                        '<div class="icon-button-small" title="Move Down"' + (index === toRender.length - 1 ? ' style="opacity: 0.3;"' : '') + '>' +
+                            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                                '<polyline points="6,9 12,15 18,9"></polyline>' +
+                            '</svg>' +
+                        '</div>' +
+                        '<div class="icon-button-small edit-measure-btn" title="Edit" data-measure-id="' + measure.id + '">' +
+                            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                                '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2v-7"></path>' +
+                                '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>' +
+                            '</svg>' +
+                        '</div>' +
+                    '</div>';
                 measureList.appendChild(measureItem);
             });
         }
@@ -1014,17 +961,7 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             document.getElementById(modalId).style.display = 'none';
         }
         
-        // Show snackbar
-        function showSnackbar(message, duration = 3000) {
-            const snackbar = document.getElementById('snackbar');
-            const text = document.getElementById('snackbarText');
-            text.textContent = message;
-            snackbar.classList.add('visible');
-            
-            setTimeout(() => {
-                snackbar.classList.remove('visible');
-            }, duration);
-        }
+        // Snackbar removed
         
         // Event listeners
         document.getElementById('addMeasureBtn').addEventListener('click', () => {
@@ -1056,6 +993,163 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
                     showModal('editShowModal');
                 }
             }
+            // Edit measure button click handler
+            if (e.target.closest('.edit-measure-btn')) {
+                console.log('Edit measure button clicked!');
+                e.preventDefault();
+                e.stopPropagation();
+                const measureId = e.target.closest('.edit-measure-btn').getAttribute('data-measure-id');
+                console.log('Measure ID:', measureId);
+                const show = shows.find(s => s.id === selectedShow);
+                if (show) {
+                    const measure = show.measures.find(m => m.id === measureId);
+                    if (measure) {
+                        // Store the measure being edited
+                        window.editingMeasureId = measureId;
+                        // Calculate the correct number of measures
+                        let measureCount = 1;
+                        if (condensedView) {
+                            // In condensed view, count consecutive similar measures
+                            const measureIndex = show.measures.findIndex(m => m.id === measureId);
+                            let count = 0;
+                            for (let i = measureIndex; i < show.measures.length; i++) {
+                                const currentMeasure = show.measures[i];
+                                if (currentMeasure.timeSignature.numerator === measure.timeSignature.numerator &&
+                                    currentMeasure.timeSignature.denominator === measure.timeSignature.denominator &&
+                                    currentMeasure.tempo === measure.tempo) {
+                                    count++;
+                                } else {
+                                    break;
+                                }
+                            }
+                            measureCount = count;
+                        }
+                        document.getElementById('editNumMeasuresInput').value = measureCount;
+                        document.getElementById('editTempoInput').value = measure.tempo;
+                        document.getElementById('editNumeratorInput').value = measure.timeSignature.numerator;
+                        document.getElementById('editDenominatorInput').value = measure.timeSignature.denominator;
+                        showModal('editMeasuresModal');
+                    }
+                }
+            }
+            // Move up button click handler
+            if (e.target.closest('[title="Move Up"]')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const measureItem = e.target.closest('.measure-item');
+                const measureId = measureItem.getAttribute('data-measure-id');
+                console.log('Move up clicked for measure:', measureId);
+                const show = shows.find(s => s.id === selectedShow);
+                if (show) {
+                    const measureIndex = show.measures.findIndex(m => m.id === measureId);
+                    if (measureIndex > 0) {
+                        // Find the end of the current measure group
+                        let groupEnd = measureIndex;
+                        const currentMeasure = show.measures[measureIndex];
+                        for (let i = measureIndex + 1; i < show.measures.length; i++) {
+                            if (show.measures[i].timeSignature.numerator === currentMeasure.timeSignature.numerator &&
+                                show.measures[i].timeSignature.denominator === currentMeasure.timeSignature.denominator &&
+                                show.measures[i].tempo === currentMeasure.tempo) {
+                                groupEnd = i;
+                            } else {
+                                break;
+                            }
+                        }
+                        
+                        // Find the end of the previous measure group
+                        let prevGroupEnd = measureIndex - 1;
+                        const prevMeasure = show.measures[measureIndex - 1];
+                        for (let i = measureIndex - 2; i >= 0; i--) {
+                            if (show.measures[i].timeSignature.numerator === prevMeasure.timeSignature.numerator &&
+                                show.measures[i].timeSignature.denominator === prevMeasure.timeSignature.denominator &&
+                                show.measures[i].tempo === prevMeasure.tempo) {
+                                prevGroupEnd = i;
+                            } else {
+                                break;
+                            }
+                        }
+                        
+                        // Move the current group above the previous group
+                        const currentGroup = show.measures.slice(measureIndex, groupEnd + 1);
+                        const previousGroup = show.measures.slice(prevGroupEnd, measureIndex);
+                        const updatedMeasures = [
+                            ...show.measures.slice(0, prevGroupEnd),
+                            ...currentGroup,
+                            ...previousGroup,
+                            ...show.measures.slice(groupEnd + 1)
+                        ];
+                        
+                        // Send message to React Native to update show measures
+                        window.ReactNativeWebView.postMessage(JSON.stringify({
+                            type: 'UPDATE_SHOW_MEASURES',
+                            showId: show.id,
+                            measures: updatedMeasures
+                        }));
+                        
+                        // Snackbar removed
+                    }
+                }
+            }
+            // Move down button click handler
+            if (e.target.closest('[title="Move Down"]')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const measureItem = e.target.closest('.measure-item');
+                const measureId = measureItem.getAttribute('data-measure-id');
+                console.log('Move down clicked for measure:', measureId);
+                const show = shows.find(s => s.id === selectedShow);
+                if (show) {
+                    const measureIndex = show.measures.findIndex(m => m.id === measureId);
+                    if (measureIndex < show.measures.length - 1) {
+                        // Find the end of the current measure group
+                        let groupEnd = measureIndex;
+                        const currentMeasure = show.measures[measureIndex];
+                        for (let i = measureIndex + 1; i < show.measures.length; i++) {
+                            if (show.measures[i].timeSignature.numerator === currentMeasure.timeSignature.numerator &&
+                                show.measures[i].timeSignature.denominator === currentMeasure.timeSignature.denominator &&
+                                show.measures[i].tempo === currentMeasure.tempo) {
+                                groupEnd = i;
+                            } else {
+                                break;
+                            }
+                        }
+                        
+                        // Find the end of the next measure group
+                        let nextGroupEnd = groupEnd + 1;
+                        if (nextGroupEnd < show.measures.length) {
+                            const nextMeasure = show.measures[nextGroupEnd];
+                            for (let i = nextGroupEnd + 1; i < show.measures.length; i++) {
+                                if (show.measures[i].timeSignature.numerator === nextMeasure.timeSignature.numerator &&
+                                    show.measures[i].timeSignature.denominator === nextMeasure.timeSignature.denominator &&
+                                    show.measures[i].tempo === nextMeasure.tempo) {
+                                    nextGroupEnd = i;
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Move the current group below the next group
+                        const currentGroup = show.measures.slice(measureIndex, groupEnd + 1);
+                        const nextGroup = show.measures.slice(groupEnd + 1, nextGroupEnd + 1);
+                        const updatedMeasures = [
+                            ...show.measures.slice(0, measureIndex),
+                            ...nextGroup,
+                            ...currentGroup,
+                            ...show.measures.slice(nextGroupEnd + 1)
+                        ];
+                        
+                        // Send message to React Native to update show measures
+                        window.ReactNativeWebView.postMessage(JSON.stringify({
+                            type: 'UPDATE_SHOW_MEASURES',
+                            showId: show.id,
+                            measures: updatedMeasures
+                        }));
+                        
+                        // Snackbar removed
+                    }
+                }
+            }
         });
         
         // Edit show modal buttons
@@ -1064,27 +1158,39 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
         });
         
         document.getElementById('saveEditShowBtn').addEventListener('click', () => {
-            console.log('Save button clicked!');
+            console.log('editShowSaveBtn clicked!');
             const newName = document.getElementById('showNameInput').value.trim();
-            console.log('New name:', newName);
+            console.log('New name from input:', newName);
             console.log('Editing show ID:', window.editingShowId);
-            if (newName) {
+            if (newName && window.editingShowId) {
                 console.log('Sending RENAME_SHOW message to React Native');
-                // Send message to React Native to rename the show
                 window.ReactNativeWebView.postMessage(JSON.stringify({
                     type: 'RENAME_SHOW',
                     showId: window.editingShowId,
                     newName: newName
                 }));
-                hideModal('editShowModal');
-            } else {
-                console.log('New name is empty, not sending message');
             }
+            hideModal('editShowModal');
+            // Snackbar removed
         });
         
-        document.getElementById('importShowBtn').addEventListener('click', () => {
-            showSnackbar('Import functionality will be implemented');
-        });
+        // Check if import button exists and add event listener
+        const importBtn = document.getElementById('importShowBtn');
+        if (importBtn) {
+            importBtn.addEventListener('click', () => {
+                // Add visual feedback
+                importBtn.style.backgroundColor = 'var(--accent)';
+                setTimeout(() => {
+                    importBtn.style.backgroundColor = '';
+                }, 200);
+                // Send message to React Native to trigger file picker
+                if (window.ReactNativeWebView) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                        type: 'IMPORT_SHOW'
+                    }));
+                }
+            });
+        }
         
         document.getElementById('playButton').addEventListener('click', () => {
             if (isPlaying) {
@@ -1150,8 +1256,46 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
         });
         
         document.getElementById('addMeasureSaveBtn').addEventListener('click', () => {
+            // Get values from modal inputs
+            const numMeasures = parseInt(document.getElementById('numMeasuresInput').value, 10);
+            const tempo = parseInt(document.getElementById('tempoInput').value, 10);
+            const numerator = parseInt(document.getElementById('numeratorInput').value, 10);
+            const denominator = parseInt(document.getElementById('denominatorInput').value, 10);
+            
+            // Validate inputs
+            if (
+                isNaN(numMeasures) || numMeasures < 1 || numMeasures > 500 ||
+                isNaN(tempo) || tempo < 40 || tempo > 300 ||
+                isNaN(numerator) || numerator < 1 || numerator > 32 ||
+                isNaN(denominator) || ![2,4,8,16].includes(denominator)
+            ) {
+                // Snackbar removed
+                return;
+            }
+            // Find the selected show
+            const show = shows.find(s => s.id === selectedShow);
+            if (!show) {
+                // Snackbar removed
+                return;
+            }
+            // Generate new measure objects (one per measure)
+            const newMeasures = [...show.measures];
+            for (let i = 0; i < numMeasures; i++) {
+                newMeasures.push({
+                    id: show.id + '-' + Date.now() + '-' + Math.floor(Math.random()*10000) + '-' + i,
+                    timeSignature: { numerator: numerator, denominator: denominator },
+                    tempo: tempo,
+                    count: 1
+                });
+            }
+            // Send message to React Native to update show measures
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'UPDATE_SHOW_MEASURES',
+                showId: show.id,
+                measures: newMeasures
+            }));
             hideModal('addMeasureModal');
-            showSnackbar('Added 1 measure');
+            // Snackbar removed
         });
         
         document.getElementById('editShowCancelBtn').addEventListener('click', () => {
@@ -1172,11 +1316,20 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
                 }));
             }
             hideModal('editShowModal');
-            showSnackbar('Show updated');
+            // Snackbar removed
         });
         
         document.getElementById('exportShowBtn').addEventListener('click', () => {
-            showSnackbar('Export functionality will be implemented');
+            // Find the show being edited
+            const showId = window.editingShowId || selectedShow;
+            const show = shows.find(s => s.id === showId);
+            if (show) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'EXPORT_SHOW',
+                    showId: show.id,
+                    showData: show
+                }));
+            }
         });
         
         document.getElementById('deleteShowBtn').addEventListener('click', () => {
@@ -1189,7 +1342,10 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
                 }));
             }
             hideModal('editShowModal');
-            showSnackbar('Show deleted');
+            // Snackbar removed
+            // Clear the measure manager
+            const measureList = document.getElementById('measureList');
+            measureList.innerHTML = '<div class="empty-state">No measures in this show</div>';
         });
         
         document.getElementById('importConflictCancelBtn').addEventListener('click', () => {
@@ -1198,12 +1354,12 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
         
         document.getElementById('importAsCopyBtn').addEventListener('click', () => {
             hideModal('importConflictModal');
-            showSnackbar('Show imported as copy');
+            // Snackbar removed
         });
         
         document.getElementById('replaceShowBtn').addEventListener('click', () => {
             hideModal('importConflictModal');
-            showSnackbar('Show replaced');
+            // Snackbar removed
         });
         
         document.getElementById('editMeasuresCancelBtn').addEventListener('click', () => {
@@ -1211,20 +1367,106 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
         });
         
         document.getElementById('editMeasuresSaveBtn').addEventListener('click', () => {
+            // Get values from modal inputs
+            const numMeasures = parseInt(document.getElementById('editNumMeasuresInput').value, 10);
+            const tempo = parseInt(document.getElementById('editTempoInput').value, 10);
+            const numerator = parseInt(document.getElementById('editNumeratorInput').value, 10);
+            const denominator = parseInt(document.getElementById('editDenominatorInput').value, 10);
+            
+            // Validate inputs
+            if (
+                isNaN(numMeasures) || numMeasures < 1 || numMeasures > 500 ||
+                isNaN(tempo) || tempo < 40 || tempo > 300 ||
+                isNaN(numerator) || numerator < 1 || numerator > 32 ||
+                isNaN(denominator) || ![2,4,8,16].includes(denominator)
+            ) {
+                // Snackbar removed
+                return;
+            }
+            
+            // Find the selected show and measure
+            const show = shows.find(s => s.id === selectedShow);
+            if (!show || !window.editingMeasureId) {
+                // Snackbar removed
+                return;
+            }
+            
+            // Update the measure
+            const updatedMeasures = [...show.measures];
+            const measureIndex = show.measures.findIndex(m => m.id === window.editingMeasureId);
+            const originalMeasure = show.measures[measureIndex];
+            
+            if (condensedView) {
+                // In condensed view, update all consecutive similar measures
+                let count = 0;
+                for (let i = measureIndex; i < show.measures.length; i++) {
+                    const currentMeasure = show.measures[i];
+                    if (currentMeasure.timeSignature.numerator === originalMeasure.timeSignature.numerator &&
+                        currentMeasure.timeSignature.denominator === originalMeasure.timeSignature.denominator &&
+                        currentMeasure.tempo === originalMeasure.tempo) {
+                        updatedMeasures[i] = {
+                            ...currentMeasure,
+                            timeSignature: { numerator, denominator },
+                            tempo
+                        };
+                        count++;
+                        if (count >= numMeasures) break;
+                    } else {
+                        break;
+                    }
+                }
+            } else {
+                // In detailed view, update only the single measure
+                updatedMeasures[measureIndex] = {
+                    ...originalMeasure,
+                    timeSignature: { numerator, denominator },
+                    tempo
+                };
+            }
+            
+            // Send message to React Native to update show measures
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'UPDATE_SHOW_MEASURES',
+                showId: show.id,
+                measures: updatedMeasures
+            }));
+            
             hideModal('editMeasuresModal');
-            showSnackbar('Measures updated successfully');
+            // Snackbar removed
         });
         
         document.getElementById('deleteMeasuresBtn').addEventListener('click', () => {
+            // Find the selected show
+            const show = shows.find(s => s.id === selectedShow);
+            if (!show || !window.editingMeasureId) {
+                // Snackbar removed
+                return;
+            }
+            
+            // Remove the measure
+            const updatedMeasures = show.measures.filter(m => m.id !== window.editingMeasureId);
+            
+            // Send message to React Native to update show measures
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'UPDATE_SHOW_MEASURES',
+                showId: show.id,
+                measures: updatedMeasures
+            }));
+            
             hideModal('editMeasuresModal');
-            showSnackbar('Measures deleted');
+            // Snackbar removed
         });
         
         // Condensed toggle
         document.getElementById('condensedToggle').addEventListener('click', function() {
             this.classList.toggle('active');
             condensedView = this.classList.contains('active');
-            showSnackbar(condensedView ? 'Condensed view enabled' : 'Detailed view enabled');
+            // Snackbar removed
+            // Re-render measures in the new mode
+            const show = shows.find(s => s.id === selectedShow);
+            if (show) {
+                renderMeasures(show);
+            }
         });
         
         // Show chip click handlers
@@ -1233,7 +1475,7 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
                 document.querySelectorAll('.show-chip').forEach(c => c.classList.remove('active'));
                 this.classList.add('active');
                 selectedShow = this.getAttribute('data-show-id');
-                showSnackbar('Switched to ' + this.querySelector('span').textContent);
+                // Snackbar removed
             });
         });
         
@@ -1263,7 +1505,16 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
         domStorageEnabled={true}
         allowsInlineMediaPlayback={true}
         mediaPlaybackRequiresUserAction={false}
-        onLoad={() => console.log('WebView Show loaded')}
+        onLoad={() => {
+          // Send initial data to WebView
+          setTimeout(() => {
+            webViewRef.current?.injectJavaScript(`
+              if (window.updateShowsData) {
+                window.updateShowsData(${JSON.stringify(shows)}, '${selectedShow}');
+              }
+            `);
+          }, 100);
+        }}
         onError={(error) => console.log('WebView Show error:', error)}
         onMessage={(event) => {
           try {
@@ -1278,21 +1529,14 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
               onUpdateShowMeasures(message.showId, message.measures);
             } else if (message.type === 'DELETE_SHOW' && onDeleteShow) {
               onDeleteShow(message.showId);
+            } else if (message.type === 'EXPORT_SHOW' && onMessage) {
+              onMessage(event);
+            } else if (message.type === 'IMPORT_SHOW' && onMessage) {
+              onMessage(event);
             }
           } catch (error) {
             console.log('Error parsing WebView message:', error);
           }
-        }}
-        onLoad={() => {
-          console.log('WebView Show loaded');
-          // Send initial data to WebView
-          setTimeout(() => {
-            webViewRef.current?.injectJavaScript(`
-              if (window.updateShowsData) {
-                window.updateShowsData(${JSON.stringify(shows)}, '${selectedShow}');
-              }
-            `);
-          }, 100);
         }}
       />
     </View>

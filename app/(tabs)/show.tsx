@@ -2,8 +2,11 @@ import { ThemedView } from '@/components/ThemedView';
 import WebViewShow from '@/components/WebViewShow';
 import { AppTheme } from '@/theme/AppTheme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 
 // Show data structure
 interface Measure {
@@ -60,34 +63,14 @@ export default function ShowModeScreen() {
       {
         id: '1',
         name: 'Show 1',
-        measures: [
-          {
-            id: '1-1',
-            timeSignature: { numerator: 4, denominator: 4 },
-            tempo: 120,
-            count: 4
-          }
-        ],
+        measures: [],
         createdAt: now,
         updatedAt: now
       },
       {
         id: '2',
         name: 'Show 2',
-        measures: [
-          {
-            id: '2-1',
-            timeSignature: { numerator: 3, denominator: 4 },
-            tempo: 100,
-            count: 2
-          },
-          {
-            id: '2-2',
-            timeSignature: { numerator: 4, denominator: 4 },
-            tempo: 140,
-            count: 2
-          }
-        ],
+        measures: [],
         createdAt: now,
         updatedAt: now
       }
@@ -109,14 +92,7 @@ export default function ShowModeScreen() {
     const newShow: Show = {
       id: newShowId,
       name: `Show ${newShowId}`,
-      measures: [
-        {
-          id: `${newShowId}-1`,
-          timeSignature: { numerator: 4, denominator: 4 },
-          tempo: 120,
-          count: 4
-        }
-      ],
+      measures: [],
       createdAt: now,
       updatedAt: now
     };
@@ -167,6 +143,117 @@ export default function ShowModeScreen() {
     console.log('Deleted show:', showId);
   };
 
+  const handleImportShow = async () => {
+    try {
+      // Pick a JSON file - try with specific MIME type first
+      let result;
+      try {
+        result = await DocumentPicker.getDocumentAsync({
+          type: 'application/json',
+          copyToCacheDirectory: true,
+        });
+      } catch (error) {
+        result = await DocumentPicker.getDocumentAsync({
+          type: '*/*',
+          copyToCacheDirectory: true,
+        });
+      }
+
+      if (result.canceled) {
+        return;
+      }
+
+      const fileUri = result.assets[0].uri;
+      const fileContent = await FileSystem.readAsStringAsync(fileUri);
+
+      // Parse and validate the JSON
+      let importedShow: Show;
+      try {
+        const parsedData = JSON.parse(fileContent);
+        
+        // Validate the show structure
+        if (!parsedData.name || !Array.isArray(parsedData.measures)) {
+          throw new Error('Invalid show format: missing name or measures array');
+        }
+
+        // Validate each measure
+        for (const measure of parsedData.measures) {
+          if (!measure.id || 
+              !measure.timeSignature || 
+              typeof measure.timeSignature.numerator !== 'number' ||
+              typeof measure.timeSignature.denominator !== 'number' ||
+              typeof measure.tempo !== 'number') {
+            throw new Error('Invalid measure format in imported show');
+          }
+          // Add count property if missing (default to 1)
+          if (typeof measure.count !== 'number') {
+            measure.count = 1;
+          }
+        }
+
+        importedShow = {
+          id: (shows.length + 1).toString(),
+          name: parsedData.name,
+          measures: parsedData.measures,
+          createdAt: parsedData.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+      } catch (parseError) {
+        console.error('Error parsing imported file:', parseError);
+        Alert.alert(
+          'Import Error',
+          'The selected file is not a valid Met Maestro show file. Please make sure it\'s a JSON file exported from this app.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Check for name conflicts
+      const existingShow = shows.find(show => show.name === importedShow.name);
+      if (existingShow) {
+        Alert.alert(
+          'Show Name Conflict',
+          `A show named "${importedShow.name}" already exists. Would you like to import it as a copy?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Import as Copy', 
+              onPress: () => {
+                importedShow.name = `${importedShow.name} (Copy)`;
+                addImportedShow(importedShow);
+              }
+            }
+          ]
+        );
+        return;
+      }
+
+      // Add the imported show
+      addImportedShow(importedShow);
+
+    } catch (error) {
+      console.error('Error importing show:', error);
+      Alert.alert(
+        'Import Error',
+        'Failed to import the show. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const addImportedShow = async (importedShow: Show) => {
+    const updatedShows = [...shows, importedShow];
+    setShows(updatedShows);
+    setSelectedShow(importedShow.id);
+    await saveShows(updatedShows);
+    Alert.alert(
+      'Import Successful',
+      `Show "${importedShow.name}" has been imported successfully.`,
+      [{ text: 'OK' }]
+    );
+  };
+
   return (
     <ThemedView style={styles.container}>
       <WebViewShow 
@@ -178,6 +265,26 @@ export default function ShowModeScreen() {
         onRenameShow={handleRenameShow}
         onUpdateShowMeasures={handleUpdateShowMeasures}
         onDeleteShow={handleDeleteShow}
+        onMessage={async (event) => {
+          try {
+            const message = JSON.parse(event.nativeEvent.data);
+            if (message.type === 'EXPORT_SHOW') {
+              const show = message.showData;
+              const fileName = (show.name || 'show').replace(/[^a-zA-Z0-9-_]/g, '_') + '.json';
+              const fileUri = FileSystem.cacheDirectory + fileName;
+              await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(show, null, 2));
+              if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(fileUri, { mimeType: 'application/json' });
+              } else {
+                alert('Sharing is not available on this device.');
+              }
+            } else if (message.type === 'IMPORT_SHOW') {
+              await handleImportShow();
+            }
+          } catch (e) {
+            console.error('Error handling WebView message:', e);
+          }
+        }}
       />
     </ThemedView>
   );

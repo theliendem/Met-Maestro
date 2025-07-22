@@ -894,19 +894,6 @@ const WebViewMetronome: React.FC<WebViewMetronomeProps> = ({ themeColors }) => {
         console.log('WebView JavaScript initialized');
         updateTempoDisplay();
         
-        // Test audio context on page load
-        setTimeout(() => {
-            console.log('WebView timeout triggered');
-            if (!audioContext) {
-                initAudio();
-            }
-            if (audioContext) {
-                console.log('Audio context state:', audioContext.state);
-                // Test sound
-                playClick(true);
-            }
-        }, 1000);
-        
 
     </script>
 </body>

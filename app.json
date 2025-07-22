@@ -48,6 +48,7 @@
       ],
       "expo-audio",
       "expo-asset",
+      "expo-document-picker",
       [
         "react-native-permissions",
         {
