@@ -128,68 +128,54 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             padding-top: 25vh;
         }
         
-        /* Count-off Banner */
-        .count-off-banner {
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 48px;
-            margin-top: -24px;
-            z-index: 100;
-            background-color: rgba(255,167,38,0.75);
-            display: none;
-            align-items: center;
-            justify-content: center;
-        }
+
         
-        .count-off-banner.visible {
-            display: flex;
-        }
-        
-        .count-off-text {
-            color: var(--white);
-            font-weight: bold;
-            font-size: 20px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
+
         
         /* Tempo Bar */
-        .tempo-bar-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            margin-top: 0;
-        }
-        
         .tempo-bar {
-            display: flex;
             width: 100%;
-            justify-content: center;
+            height: 40px;
+            background-color: var(--dark-gray);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            position: relative;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .tempo-segment {
+            flex: 1;
+            position: relative;
+            display: flex;
             align-items: center;
-            gap: 4px;
+            justify-content: center;
+            transition: all 0.1s ease;
+            overflow: hidden;
         }
         
-        .tempo-dot {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background-color: var(--surface);
-            border: 2px solid var(--accent);
-            opacity: 0.4;
-            transition: all 0.2s ease;
+        .tempo-segment.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--accent);
+            transform: skew(30deg);
+            transform-origin: center;
+            z-index: 1;
         }
         
-        .tempo-dot.active {
-            background-color: var(--accent);
-            opacity: 1;
-        }
-        
-        .tempo-dot.count-in {
-            background-color: var(--orange);
-            border-color: var(--orange);
+        .tempo-segment:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(330deg, transparent 0%, var(--accent) 50%, transparent 100%);
+            transform: rotate(330deg);
         }
         
         /* Show Manager Row */
@@ -376,41 +362,20 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             opacity: 0.5;
         }
         
+
+        
         /* Play Button */
         .play-button-container {
             position: fixed;
-            bottom: 60px;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 10;
         }
         
-        .play-button-shadow {
-            width: 112px;
-            height: 112px;
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(187,134,252,0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .play-button-wrapper {
-            width: 112px;
-            height: 112px;
-            border-radius: 50%;
-            border: 2px solid var(--white);
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
         .play-button {
-            width: 112px;
-            height: 112px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
             background: var(--accent);
             border: none;
@@ -424,11 +389,12 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
+            box-shadow: 0 4px 12px rgba(187,134,252,0.3);
         }
         
         .play-button:hover {
-            background: var(--primary);
             transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(187,134,252,0.4);
         }
         
         .play-button.playing {
@@ -439,9 +405,10 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             width: 0;
             height: 0;
             border-style: solid;
-            border-width: 12px 0 12px 20px;
+            border-width: 10px 0 10px 18px;
             border-color: transparent transparent transparent var(--white);
-            margin-left: 4px;
+            margin-left: 3px;
+            transition: all 0.3s ease;
         }
         
         .stop-icon {
@@ -449,6 +416,45 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             height: 16px;
             background-color: var(--white);
             border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        /* Animation for icon morphing */
+        .icon-container {
+            position: relative;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .icon-container .play-icon,
+        .icon-container .stop-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .icon-container .play-icon {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .icon-container .stop-icon {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.8);
+        }
+        
+        .icon-container.playing .play-icon {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.8);
+        }
+        
+        .icon-container.playing .stop-icon {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
         }
         
         /* Modals */
@@ -598,16 +604,16 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
 </head>
 <body>
     <div class="container">
-        <!-- Count-off Banner -->
-        <div class="count-off-banner" id="countOffBanner">
-            <div class="count-off-text">count-off</div>
-        </div>
+
+        
+
         
         <!-- Tempo Bar -->
-        <div class="tempo-bar-row">
-            <div class="tempo-bar" id="tempoBar">
-                <!-- Tempo dots will be generated dynamically -->
-            </div>
+        <div class="tempo-bar" id="tempoBar">
+            <div class="tempo-segment"></div>
+            <div class="tempo-segment"></div>
+            <div class="tempo-segment"></div>
+            <div class="tempo-segment"></div>
         </div>
         
         <!-- Show Manager Row -->
@@ -652,14 +658,15 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
         
         <!-- Play Button -->
         <div class="play-button-container">
-            <div class="play-button-shadow">
-                <div class="play-button-wrapper">
-                    <button class="play-button" id="playButton">
-                        <div class="play-icon"></div>
-                    </button>
+            <button class="play-button" id="playButton">
+                <div class="icon-container" id="iconContainer">
+                    <div class="play-icon"></div>
+                    <div class="stop-icon"></div>
                 </div>
-            </div>
+            </button>
         </div>
+        
+
     </div>
     
     <!-- Add Measure Modal -->
@@ -914,40 +921,7 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
                 measureList.appendChild(measureItem);
             });
         }
-        let isPlaying = false;
-        let isCountIn = false;
-        let currentMeasureIdx = 0;
-        let currentBeat = 0;
         let condensedView = true;
-        
-        // Initialize tempo bar
-        function initTempoBar() {
-            const tempoBar = document.getElementById('tempoBar');
-            tempoBar.innerHTML = '';
-            
-            const segments = 4; // Default 4/4
-            for (let i = 0; i < segments; i++) {
-                const dot = document.createElement('div');
-                dot.className = 'tempo-dot';
-                dot.id = 'tempo-dot-' + i;
-                tempoBar.appendChild(dot);
-            }
-        }
-        
-        // Update tempo bar
-        function updateTempoBar() {
-            const dots = document.querySelectorAll('.tempo-dot');
-            dots.forEach((dot, index) => {
-                dot.classList.remove('active', 'count-in');
-                if (isCountIn) {
-                    if (currentBeat === index) {
-                        dot.classList.add('count-in');
-                    }
-                } else if (isPlaying && currentBeat === index) {
-                    dot.classList.add('active');
-                }
-            });
-        }
         
         // Show modal
         function showModal(modalId) {
@@ -1192,63 +1166,9 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             });
         }
         
-        document.getElementById('playButton').addEventListener('click', () => {
-            if (isPlaying) {
-                isPlaying = false;
-                isCountIn = false;
-                currentBeat = -1;
-                document.getElementById('playButton').innerHTML = '<div class="play-icon"></div>';
-                document.getElementById('playButton').classList.remove('playing');
-                document.getElementById('countOffBanner').classList.remove('visible');
-                updateTempoBar();
-            } else {
-                isPlaying = true;
-                isCountIn = true;
-                currentBeat = 0;
-                document.getElementById('playButton').innerHTML = '<div class="stop-icon"></div>';
-                document.getElementById('playButton').classList.add('playing');
-                document.getElementById('countOffBanner').classList.add('visible');
-                updateTempoBar();
-                
-                // Simulate count-in
-                let countInBeat = 0;
-                const countInInterval = setInterval(() => {
-                    countInBeat++;
-                    currentBeat = countInBeat - 1;
-                    updateTempoBar();
-                    
-                    if (countInBeat >= 4) {
-                        clearInterval(countInInterval);
-                        isCountIn = false;
-                        currentBeat = 0;
-                        document.getElementById('countOffBanner').classList.remove('visible');
-                        updateTempoBar();
-                        
-                        // Simulate show playback
-                        let measureBeat = 0;
-                        const showInterval = setInterval(() => {
-                            if (!isPlaying) {
-                                clearInterval(showInterval);
-                                return;
-                            }
-                            
-                            measureBeat++;
-                            currentBeat = (measureBeat - 1) % 4;
-                            updateTempoBar();
-                            
-                            if (measureBeat > 8) { // End after 2 measures
-                                clearInterval(showInterval);
-                                isPlaying = false;
-                                currentBeat = -1;
-                                document.getElementById('playButton').innerHTML = '<div class="play-icon"></div>';
-                                document.getElementById('playButton').classList.remove('playing');
-                                updateTempoBar();
-                            }
-                        }, 500);
-                    }
-                }, 500);
-            }
-        });
+
+        
+
         
         // Modal event listeners
         document.getElementById('addMeasureCancelBtn').addEventListener('click', () => {
@@ -1479,9 +1399,268 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             });
         });
         
+        // Audio context for sound generation
+        let audioContext = null;
+        
+        // Initialize audio context
+        function initAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                console.log('Audio context initialized successfully');
+                return true;
+            } catch (e) {
+                console.error('AudioContext not supported:', e);
+                return false;
+            }
+        }
+        
+        // Play a click sound using Web Audio API (same as metronome)
+        function playClick(isDownbeat = false) {
+            if (!audioContext) {
+                console.error('No audio context available');
+                return;
+            }
+            
+            const startTime = audioContext.currentTime;
+            const duration = 0.08;
+            
+            if (isDownbeat) {
+                // Downbeat: higher frequency with more harmonics
+                const oscillator1 = audioContext.createOscillator();
+                const oscillator2 = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator1.frequency.setValueAtTime(800, startTime);
+                oscillator2.frequency.setValueAtTime(1200, startTime);
+                
+                gainNode.gain.setValueAtTime(0.3, startTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+                
+                oscillator1.connect(gainNode);
+                oscillator2.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator1.start(startTime);
+                oscillator2.start(startTime);
+                oscillator1.stop(startTime + duration);
+                oscillator2.stop(startTime + duration);
+            } else {
+                // Offbeat: simpler sound
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.frequency.setValueAtTime(600, startTime);
+                gainNode.gain.setValueAtTime(0.2, startTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.start(startTime);
+                oscillator.stop(startTime + duration);
+            }
+        }
+        
+        // Play button functionality
+        let isPlaying = false;
+        let metronomeInterval = null;
+        
+        document.getElementById('playButton').addEventListener('click', () => {
+            const iconContainer = document.getElementById('iconContainer');
+            
+            if (isPlaying) {
+                // Stop playing
+                isPlaying = false;
+                document.getElementById('playButton').classList.remove('playing');
+                iconContainer.classList.remove('playing');
+                
+                // Stop metronome
+                stopMetronome();
+            } else {
+                // Start playing
+                isPlaying = true;
+                document.getElementById('playButton').classList.add('playing');
+                iconContainer.classList.add('playing');
+                
+                // Initialize audio context if needed
+                if (!audioContext) {
+                    if (!initAudio()) {
+                        console.error('Failed to initialize audio context');
+                        return;
+                    }
+                }
+                
+                // Ensure audio context is running
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        console.log('Audio context resumed');
+                        startMetronome();
+                    }).catch(e => {
+                        console.error('Failed to resume audio context:', e);
+                    });
+                } else {
+                    startMetronome();
+                }
+            }
+        });
+        
+        // Start continuous metronome at 120 BPM
+        function startMetronome() {
+            // Get the selected show
+            const show = shows.find(s => s.id === selectedShow);
+            if (!show || !show.measures || show.measures.length === 0) {
+                console.log('No show or measures found');
+                return;
+            }
+            
+            let currentMeasureIndex = 0;
+            let currentBeat = 0;
+            
+            // Calculate interval for 120 BPM (60000ms / 120 = 500ms per beat)
+            const interval = 60000 / 120; // 500ms
+            
+            // Function to update tempo bar for current measure
+            function updateTempoBarForMeasure(measureIndex) {
+                if (measureIndex >= show.measures.length) {
+                    // End of show
+                    stopMetronome();
+                    return;
+                }
+                
+                const measure = show.measures[measureIndex];
+                const numerator = measure.timeSignature.numerator;
+                
+                // Update tempo bar to match the measure's numerator
+                updateTempoBarSegments(numerator);
+                console.log('Updated tempo bar for measure', measureIndex + 1, 'with', numerator, 'beats');
+            }
+            
+            // Skip first beat and start with beat 2
+            currentBeat = 1; // Start at beat 2 (index 1)
+            updateTempoBarForMeasure(currentMeasureIndex);
+            updateTempoBar(0, currentMeasureIndex, show.measures[currentMeasureIndex].timeSignature.numerator); // Light up first segment immediately
+            
+            // Play high note immediately
+            playClick(true);
+            
+            // Set up interval for continuous playback
+            metronomeInterval = setInterval(() => {
+                if (isPlaying) {
+                    // Check if this is beat 1 of the measure
+                    const isDownbeat = (currentBeat === 0);
+                    playClick(isDownbeat);
+                    
+                    const currentMeasure = show.measures[currentMeasureIndex];
+                    const numerator = currentMeasure.timeSignature.numerator;
+                    
+                    // Check if this is the very last beat of the show
+                    const isLastBeatOfShow = (currentMeasureIndex >= show.measures.length - 1 && currentBeat === numerator - 1);
+                    
+                    currentBeat++;
+                    
+                    if (currentBeat >= numerator) {
+                        // Move to next measure
+                        currentMeasureIndex++;
+                        currentBeat = 0;
+                        
+                        if (currentMeasureIndex >= show.measures.length) {
+                            // End of show - wait for the last beat to complete
+                            setTimeout(() => {
+                                stopMetronome();
+                            }, interval);
+                            return;
+                        }
+                        
+                        // Don't update tempo bar yet - wait until next beat
+                    }
+                    
+                    // Update tempo bar for new measure on the first beat of the new measure
+                    if (currentBeat === 1 && currentMeasureIndex > 0) {
+                        updateTempoBarForMeasure(currentMeasureIndex);
+                    }
+                    
+                    // Update tempo bar to show the beat that just played
+                    // Handle the case where we're moving to the next measure
+                    if (currentBeat === 0) {
+                        // We just moved to a new measure, show the last beat of the previous measure
+                        const previousMeasure = show.measures[currentMeasureIndex - 1];
+                        const previousNumerator = previousMeasure.timeSignature.numerator;
+                        updateTempoBar(previousNumerator - 1, currentMeasureIndex - 1, previousNumerator);
+                    } else if (isLastBeatOfShow) {
+                        // This is the very last beat of the show
+                        const lastMeasure = show.measures[currentMeasureIndex];
+                        const lastNumerator = lastMeasure.timeSignature.numerator;
+                        updateTempoBar(lastNumerator - 1, currentMeasureIndex, lastNumerator);
+                    } else {
+                        updateTempoBar(currentBeat - 1, currentMeasureIndex, currentMeasure.timeSignature.numerator);
+                    }
+                } else {
+                    // Stop if playing state changed
+                    stopMetronome();
+                }
+            }, interval);
+        }
+        
+        // Stop metronome
+        function stopMetronome() {
+            if (metronomeInterval) {
+                clearInterval(metronomeInterval);
+                metronomeInterval = null;
+            }
+            clearTempoBar();
+            
+            // Reset button state to play
+            isPlaying = false;
+            document.getElementById('playButton').classList.remove('playing');
+            document.getElementById('iconContainer').classList.remove('playing');
+        }
+        
+        // Update tempo bar to highlight current beat
+        function updateTempoBar(beatIndex, measureIndex, numerator) {
+            const segments = document.querySelectorAll('.tempo-segment');
+            segments.forEach((segment, index) => {
+                if (index === beatIndex) {
+                    segment.classList.add('active');
+                } else {
+                    segment.classList.remove('active');
+                }
+            });
+            
+            // Log tempo bar update to React Native
+            if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'TEMPO_BAR_LOG',
+                    beatIndex: beatIndex,
+                    totalSegments: segments.length,
+                    measureIndex: measureIndex,
+                    numerator: numerator,
+                    message: 'Measure ' + (measureIndex + 1) + ', Beat ' + (beatIndex + 1) + ' of ' + numerator + ', Segment ' + (beatIndex + 1) + ' of ' + segments.length
+                }));
+            }
+        }
+        
+        // Update tempo bar to have the correct number of segments
+        function updateTempoBarSegments(numerator) {
+            const tempoBar = document.getElementById('tempoBar');
+            tempoBar.innerHTML = '';
+            
+            // Create segments based on the numerator
+            for (let i = 0; i < numerator; i++) {
+                const segment = document.createElement('div');
+                segment.className = 'tempo-segment';
+                tempoBar.appendChild(segment);
+            }
+        }
+        
+        // Clear tempo bar highlighting
+        function clearTempoBar() {
+            const segments = document.querySelectorAll('.tempo-segment');
+            segments.forEach(segment => {
+                segment.classList.remove('active');
+            });
+        }
+        
         // Initialize
-        initTempoBar();
-        updateTempoBar();
         renderShows();
         
         // Expose functions to React Native
@@ -1533,6 +1712,10 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
               onMessage(event);
             } else if (message.type === 'IMPORT_SHOW' && onMessage) {
               onMessage(event);
+            } else if (message.type === 'LOG') {
+              console.log('WebView Log:', message.message);
+            } else if (message.type === 'TEMPO_BAR_LOG') {
+              console.log(`[Tempo Bar] ${message.message}`);
             }
           } catch (error) {
             console.log('Error parsing WebView message:', error);
@@ -1543,14 +1726,14 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
   );
 };
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: AppTheme.colors.background,
-    },
-    webview: {
-      flex: 1,
-    },
-  });
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: AppTheme.colors.background,
+  },
+  webview: {
+    flex: 1,
+  },
+});
 
 export default WebViewShow; 
