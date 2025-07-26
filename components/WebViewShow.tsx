@@ -32,6 +32,7 @@ interface WebViewShowProps {
   onUpdateShowMeasures?: (showId: string, measures: any[]) => void;
   onDeleteShow?: (showId: string) => void;
   onMessage?: (event: any) => void;
+  onMeasureCompleted?: (measure: number, beatsPerMeasure: number, tempo: number) => void;
 }
 
 const WebViewShow: React.FC<WebViewShowProps> = ({ 
@@ -43,7 +44,8 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
   onRenameShow, 
   onUpdateShowMeasures, 
   onDeleteShow,
-  onMessage
+  onMessage,
+  onMeasureCompleted
 }) => {
   const webViewRef = useRef<WebView>(null);
   
@@ -60,6 +62,17 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
       }, 100);
     }
   }, [shows, selectedShow]);
+
+  // Function to update beats per measure
+  const updateBeatsPerMeasure = React.useCallback((beatsPerMeasure: number) => {
+    if (webViewRef.current) {
+      webViewRef.current.injectJavaScript(`
+        if (window.updateBeatsPerMeasure) {
+          window.updateBeatsPerMeasure(${beatsPerMeasure});
+        }
+      `);
+    }
+  }, []);
 
   // HTML content for the complete show UI
   const htmlContent = `
@@ -132,50 +145,60 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
         
 
         
+
+        
         /* Tempo Bar */
-        .tempo-bar {
-            width: 100%;
-            height: 40px;
-            background-color: var(--dark-gray);
-            border-radius: 8px;
-            margin-bottom: 12px;
-            position: relative;
+        .tempo-bar-container {
             display: flex;
-            overflow: hidden;
+            margin-bottom: 8px;
+            background-color: var(--dark-gray);
+            border-radius: 16px;
+            padding: 2vh 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            height: calc(36px + 4vh);
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .tempo-bar {
+            flex: 1;
+            display: flex;
+            gap: 2px;
+            height: 100%;
         }
         
         .tempo-segment {
             flex: 1;
-            position: relative;
+            background-color: var(--medium-gray);
+            border-radius: 8px;
+            transition: all 0.1s ease;
+        }
+        
+        .tempo-segment.active {
+            background-color: var(--accent);
+            box-shadow: 0 0 8px rgba(187,134,252,0.4);
+        }
+        
+        .tempo-info {
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: all 0.1s ease;
-            overflow: hidden;
+            min-width: 80px;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 600;
         }
         
-        .tempo-segment.active::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--accent);
-            transform: skew(30deg);
-            transform-origin: center;
-            z-index: 1;
+        .tempo-bpm {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--accent);
         }
         
-        .tempo-segment:not(:last-child)::after {
-            content: '';
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: linear-gradient(330deg, transparent 0%, var(--accent) 50%, transparent 100%);
-            transform: rotate(330deg);
+        .tempo-time-signature {
+            font-size: 10px;
+            opacity: 0.7;
         }
         
         /* Show Manager Row */
@@ -608,12 +631,17 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
         
 
         
+
+        
         <!-- Tempo Bar -->
-        <div class="tempo-bar" id="tempoBar">
-            <div class="tempo-segment"></div>
-            <div class="tempo-segment"></div>
-            <div class="tempo-segment"></div>
-            <div class="tempo-segment"></div>
+        <div class="tempo-bar-container">
+            <div class="tempo-bar" id="tempoBar">
+                <!-- Tempo segments will be dynamically generated here -->
+            </div>
+            <div class="tempo-info">
+                <div class="tempo-bpm" id="tempoBpm">120 BPM</div>
+                <div class="tempo-time-signature" id="tempoTimeSignature">4/4</div>
+            </div>
         </div>
         
         <!-- Show Manager Row -->
@@ -1363,8 +1391,48 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
                 return;
             }
             
-            // Remove the measure
-            const updatedMeasures = show.measures.filter(m => m.id !== window.editingMeasureId);
+            // Find the measure being edited
+            const measureIndex = show.measures.findIndex(m => m.id === window.editingMeasureId);
+            if (measureIndex === -1) {
+                // Snackbar removed
+                return;
+            }
+            
+            const measureToDelete = show.measures[measureIndex];
+            
+            // Find all measures in the same group (consecutive measures with same time signature and tempo)
+            let startIndex = measureIndex;
+            let endIndex = measureIndex;
+            
+            // Look backwards to find the start of the group
+            for (let i = measureIndex - 1; i >= 0; i--) {
+                const currentMeasure = show.measures[i];
+                if (currentMeasure.timeSignature.numerator === measureToDelete.timeSignature.numerator &&
+                    currentMeasure.timeSignature.denominator === measureToDelete.timeSignature.denominator &&
+                    currentMeasure.tempo === measureToDelete.tempo) {
+                    startIndex = i;
+                } else {
+                    break;
+                }
+            }
+            
+            // Look forwards to find the end of the group
+            for (let i = measureIndex + 1; i < show.measures.length; i++) {
+                const currentMeasure = show.measures[i];
+                if (currentMeasure.timeSignature.numerator === measureToDelete.timeSignature.numerator &&
+                    currentMeasure.timeSignature.denominator === measureToDelete.timeSignature.denominator &&
+                    currentMeasure.tempo === measureToDelete.tempo) {
+                    endIndex = i;
+                } else {
+                    break;
+                }
+            }
+            
+            // Remove all measures in the group
+            const updatedMeasures = [
+                ...show.measures.slice(0, startIndex),
+                ...show.measures.slice(endIndex + 1)
+            ];
             
             // Send message to React Native to update show measures
             window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -1399,8 +1467,13 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             });
         });
         
-        // Audio context for sound generation
-        let audioContext = null;
+
+        
+        // Audio context for sound playback
+        let audioContext;
+        let beatsPerMeasure = 4; // Configurable beats per measure
+        let currentBeat = 0;
+        let currentMeasure = 0;
         
         // Initialize audio context
         function initAudio() {
@@ -1414,7 +1487,7 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             }
         }
         
-        // Play a click sound using Web Audio API (same as metronome)
+        // Play a click sound using Web Audio API
         function playClick(isDownbeat = false) {
             if (!audioContext) {
                 console.error('No audio context available');
@@ -1425,7 +1498,7 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             const duration = 0.08;
             
             if (isDownbeat) {
-                // Downbeat: higher frequency with more harmonics
+                // Downbeat (beat 1): higher frequency with more harmonics
                 const oscillator1 = audioContext.createOscillator();
                 const oscillator2 = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
@@ -1461,6 +1534,51 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             }
         }
         
+        // Function to update beats per measure
+        function updateBeatsPerMeasure(newBeatsPerMeasure) {
+            beatsPerMeasure = newBeatsPerMeasure;
+            console.log('Updated beats per measure to:', beatsPerMeasure);
+        }
+        
+        // Expose the function to React Native
+        window.updateBeatsPerMeasure = updateBeatsPerMeasure;
+        
+        // Function to update tempo bar
+        function updateTempoBar(numerator, tempo) {
+            const tempoBar = document.getElementById('tempoBar');
+            const tempoBpm = document.getElementById('tempoBpm');
+            const tempoTimeSignature = document.getElementById('tempoTimeSignature');
+            
+            // Update tempo info
+            tempoBpm.textContent = tempo + ' BPM';
+            tempoTimeSignature.textContent = numerator + '/4'; // Assuming 4 as denominator for display
+            
+            // Clear existing segments
+            tempoBar.innerHTML = '';
+            
+            // Create segments based on numerator
+            for (let i = 0; i < numerator; i++) {
+                const segment = document.createElement('div');
+                segment.className = 'tempo-segment';
+                segment.setAttribute('data-beat', i);
+                tempoBar.appendChild(segment);
+            }
+        }
+        
+        // Function to highlight current beat
+        function highlightBeat(beatIndex) {
+            // Remove active class from all segments
+            document.querySelectorAll('.tempo-segment').forEach(segment => {
+                segment.classList.remove('active');
+            });
+            
+            // Add active class to current beat segment
+            const currentSegment = document.querySelector('[data-beat="' + beatIndex + '"]');
+            if (currentSegment) {
+                currentSegment.classList.add('active');
+            }
+        }
+        
         // Play button functionality
         let isPlaying = false;
         let metronomeInterval = null;
@@ -1482,61 +1600,72 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
                 document.getElementById('playButton').classList.add('playing');
                 iconContainer.classList.add('playing');
                 
-                // Initialize audio context if needed
-                if (!audioContext) {
-                    if (!initAudio()) {
-                        console.error('Failed to initialize audio context');
-                        return;
-                    }
-                }
-                
-                // Ensure audio context is running
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume().then(() => {
-                        console.log('Audio context resumed');
-                        startMetronome();
-                    }).catch(e => {
-                        console.error('Failed to resume audio context:', e);
-                    });
-                } else {
-                    startMetronome();
-                }
+                // Start metronome
+                startMetronome();
             }
         });
         
         // Start continuous metronome at 120 BPM
         function startMetronome() {
+            // Initialize audio context if needed
+            if (!audioContext) {
+                if (!initAudio()) {
+                    console.error('Failed to initialize audio context');
+                    return;
+                }
+            }
+            
+            // Ensure audio context is running
+            if (audioContext.state === 'suspended') {
+                audioContext.resume().then(() => {
+                    console.log('Audio context resumed');
+                    startMetronomeInternal();
+                }).catch(e => {
+                    console.error('Failed to resume audio context:', e);
+                });
+            } else {
+                startMetronomeInternal();
+            }
+        }
+        
+        function startMetronomeInternal() {
+            console.log('Starting metronome');
+            
+            // Clear any existing interval first
+            if (metronomeInterval) {
+                clearInterval(metronomeInterval);
+                metronomeInterval = null;
+            }
+            
+            isPlaying = true;
+            currentBeat = 0;
+            currentMeasure = 0;
+            
             // Get the selected show
             const show = shows.find(s => s.id === selectedShow);
             if (!show || !show.measures || show.measures.length === 0) {
                 console.log('No show or measures found');
+                stopMetronome();
                 return;
             }
             
-            let currentMeasureIndex = 0;
-            let currentBeat = 0;
-            let metronomeInterval = null;
+            // Set initial values from first measure
+            beatsPerMeasure = show.measures[0].timeSignature.numerator;
+            let currentTempo = show.measures[0].tempo;
+            const firstMeasure = show.measures[0];
+            const firstDenominator = firstMeasure.timeSignature.denominator;
+            const beatDuration = 60000 / currentTempo; // Duration of a quarter note
+            let interval = beatDuration * (4 / firstDenominator); // Calculate interval based on tempo and time signature
             
-            // Function to calculate interval based on tempo
-            function getIntervalForTempo(tempo) {
-                return 60000 / tempo; // Convert BPM to milliseconds per beat
-            }
+            console.log('Starting with', beatsPerMeasure, 'beats per measure at', currentTempo, 'BPM, time signature', firstMeasure.timeSignature.numerator + '/' + firstDenominator);
             
-            // Function to update tempo bar for current measure
-            function updateTempoBarForMeasure(measureIndex) {
-                if (measureIndex >= show.measures.length) {
-                    // End of show
-                    stopMetronome();
-                    return;
-                }
-                
-                const measure = show.measures[measureIndex];
-                const numerator = measure.timeSignature.numerator;
-                
-                // Update tempo bar to match the measure's numerator
-                updateTempoBarSegments(numerator);
-                console.log('Updated tempo bar for measure', measureIndex + 1, 'with', numerator, 'beats');
-            }
+            // Initialize tempo bar
+            updateTempoBar(beatsPerMeasure, currentTempo);
+            
+            // Play first beat immediately (downbeat)
+            playClick(true);
+            highlightBeat(0); // Highlight first beat
+            currentBeat++;
             
             // Function to start metronome with current measure's tempo
             function startMetronomeWithTempo() {
@@ -1544,68 +1673,71 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
                     clearInterval(metronomeInterval);
                 }
                 
-                const currentMeasure = show.measures[currentMeasureIndex];
-                const tempo = currentMeasure.tempo;
-                const interval = getIntervalForTempo(tempo);
+                const currentMeasureData = show.measures[currentMeasure];
+                currentTempo = currentMeasureData.tempo;
                 
-                console.log('Starting metronome for measure', currentMeasureIndex + 1, 'at', tempo, 'BPM (interval:', interval, 'ms)');
+                // Calculate interval based on tempo and time signature denominator
+                // The denominator tells us what note value gets the beat
+                // 4 = quarter note, 8 = eighth note, 2 = half note, etc.
+                const denominator = currentMeasureData.timeSignature.denominator;
+                const beatDuration = 60000 / currentTempo; // Duration of a quarter note
                 
-                // Play first beat immediately
-                playClick(true);
-                updateTempoBar(0, currentMeasureIndex, currentMeasure.timeSignature.numerator);
+                // Convert to the appropriate note value duration
+                // For 4/4: quarter note = 60000/tempo
+                // For 6/8: eighth note = (60000/tempo) * (4/8) = 60000/tempo * 0.5
+                // For 3/2: half note = (60000/tempo) * (4/2) = 60000/tempo * 2
+                interval = beatDuration * (4 / denominator);
+                
+                console.log('Starting metronome for measure', currentMeasure + 1, 'at', currentTempo, 'BPM, time signature', currentMeasureData.timeSignature.numerator + '/' + denominator, '(interval:', interval, 'ms)');
                 
                 // Set up interval for continuous playback
                 metronomeInterval = setInterval(() => {
                     if (isPlaying) {
-                        // Check if this is beat 1 of the measure
-                        const isDownbeat = (currentBeat === 0);
+                        // Check if this is beat 1 of a new measure
+                        // If this is the first beat of a measure, refresh the tempo bar so
+                        // the previous measure's final beat remains visible until the next
+                        // interval tick.
+                        if (currentBeat === 0) {
+                            updateTempoBar(beatsPerMeasure, currentTempo);
+                        }
+
+                        // Play click & highlight current beat
+                        const isDownbeat = currentBeat === 0;
                         playClick(isDownbeat);
+                        highlightBeat(currentBeat); // Highlight current beat
                         
-                        const currentMeasure = show.measures[currentMeasureIndex];
-                        const numerator = currentMeasure.timeSignature.numerator;
-                        
-                        // Check if this is the very last beat of the show
-                        const isLastBeatOfShow = (currentMeasureIndex >= show.measures.length - 1 && currentBeat === numerator - 1);
-                        
+                        // Increment beat counter
                         currentBeat++;
                         
-                        if (currentBeat >= numerator) {
-                            // Move to next measure
-                            currentMeasureIndex++;
+                        // Check if we've completed a measure (after incrementing)
+                        if (currentBeat >= beatsPerMeasure) {
+                            currentMeasure++;
                             currentBeat = 0;
+                            console.log('Completed measure:', currentMeasure);
                             
-                            if (currentMeasureIndex >= show.measures.length) {
-                                // End of show - wait for the last beat to complete
-                                setTimeout(() => {
-                                    stopMetronome();
-                                }, interval);
+                            // Check if we've completed all measures
+                            if (currentMeasure >= show.measures.length) {
+                                console.log('Show completed');
+                                stopMetronome();
                                 return;
                             }
+                            
+                            // Update beats per measure and tempo for next measure
+                            const nextMeasure = show.measures[currentMeasure];
+                            beatsPerMeasure = nextMeasure.timeSignature.numerator;
+                            console.log('Updated to', beatsPerMeasure, 'beats per measure at', nextMeasure.tempo, 'BPM, time signature', nextMeasure.timeSignature.numerator + '/' + nextMeasure.timeSignature.denominator, 'for measure', currentMeasure + 1);
+                            
+                            // Send message to React Native about measure completion
+                            window.ReactNativeWebView.postMessage(JSON.stringify({
+                                type: 'MEASURE_COMPLETED',
+                                measure: currentMeasure,
+                                beatsPerMeasure: beatsPerMeasure,
+                                tempo: nextMeasure.tempo
+                            }));
                             
                             // Start new metronome with new measure's tempo
                             startMetronomeWithTempo();
                             return;
-                        }
-                        
-                        // Update tempo bar for new measure on the first beat of the new measure
-                        if (currentBeat === 1 && currentMeasureIndex > 0) {
-                            updateTempoBarForMeasure(currentMeasureIndex);
-                        }
-                        
-                        // Update tempo bar to show the beat that just played
-                        // Handle the case where we're moving to the next measure
-                        if (currentBeat === 0) {
-                            // We just moved to a new measure, show the last beat of the previous measure
-                            const previousMeasure = show.measures[currentMeasureIndex - 1];
-                            const previousNumerator = previousMeasure.timeSignature.numerator;
-                            updateTempoBar(previousNumerator - 1, currentMeasureIndex - 1, previousNumerator);
-                        } else if (isLastBeatOfShow) {
-                            // This is the very last beat of the show
-                            const lastMeasure = show.measures[currentMeasureIndex];
-                            const lastNumerator = lastMeasure.timeSignature.numerator;
-                            updateTempoBar(lastNumerator - 1, currentMeasureIndex, lastNumerator);
-                        } else {
-                            updateTempoBar(currentBeat - 1, currentMeasureIndex, currentMeasure.timeSignature.numerator);
                         }
                     } else {
                         // Stop if playing state changed
@@ -1615,8 +1747,6 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             }
             
             // Initialize metronome with first measure's tempo
-            currentBeat = 1; // Start at beat 2 (index 1)
-            updateTempoBarForMeasure(currentMeasureIndex);
             startMetronomeWithTempo();
         }
         
@@ -1626,62 +1756,23 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
                 clearInterval(metronomeInterval);
                 metronomeInterval = null;
             }
-            clearTempoBar();
+
+            // Reset beat and measure counters
+            currentBeat = 0;
+            currentMeasure = 0;
+            
+            // Clear tempo bar highlights
+            document.querySelectorAll('.tempo-segment').forEach(segment => {
+                segment.classList.remove('active');
+            });
             
             // Reset button state to play
             isPlaying = false;
             document.getElementById('playButton').classList.remove('playing');
             document.getElementById('iconContainer').classList.remove('playing');
-            
-            // Reset position for next play
-            currentMeasureIndex = 0;
-            currentBeat = 1;
         }
         
-        // Update tempo bar to highlight current beat
-        function updateTempoBar(beatIndex, measureIndex, numerator) {
-            const segments = document.querySelectorAll('.tempo-segment');
-            segments.forEach((segment, index) => {
-                if (index === beatIndex) {
-                    segment.classList.add('active');
-                } else {
-                    segment.classList.remove('active');
-                }
-            });
-            
-            // Log tempo bar update to React Native
-            if (window.ReactNativeWebView) {
-                window.ReactNativeWebView.postMessage(JSON.stringify({
-                    type: 'TEMPO_BAR_LOG',
-                    beatIndex: beatIndex,
-                    totalSegments: segments.length,
-                    measureIndex: measureIndex,
-                    numerator: numerator,
-                    message: 'Measure ' + (measureIndex + 1) + ', Beat ' + (beatIndex + 1) + ' of ' + numerator + ', Segment ' + (beatIndex + 1) + ' of ' + segments.length
-                }));
-            }
-        }
-        
-        // Update tempo bar to have the correct number of segments
-        function updateTempoBarSegments(numerator) {
-            const tempoBar = document.getElementById('tempoBar');
-            tempoBar.innerHTML = '';
-            
-            // Create segments based on the numerator
-            for (let i = 0; i < numerator; i++) {
-                const segment = document.createElement('div');
-                segment.className = 'tempo-segment';
-                tempoBar.appendChild(segment);
-            }
-        }
-        
-        // Clear tempo bar highlighting
-        function clearTempoBar() {
-            const segments = document.querySelectorAll('.tempo-segment');
-            segments.forEach(segment => {
-                segment.classList.remove('active');
-            });
-        }
+
         
         // Initialize
         renderShows();
@@ -1735,10 +1826,13 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
               onMessage(event);
             } else if (message.type === 'IMPORT_SHOW' && onMessage) {
               onMessage(event);
+            } else if (message.type === 'MEASURE_COMPLETED') {
+              console.log('Measure completed:', message.measure, 'with', message.beatsPerMeasure, 'beats per measure at', message.tempo, 'BPM');
+              if (onMeasureCompleted) {
+                onMeasureCompleted(message.measure, message.beatsPerMeasure, message.tempo);
+              }
             } else if (message.type === 'LOG') {
               console.log('WebView Log:', message.message);
-            } else if (message.type === 'TEMPO_BAR_LOG') {
-              console.log(`[Tempo Bar] ${message.message}`);
             }
           } catch (error) {
             console.log('Error parsing WebView message:', error);
