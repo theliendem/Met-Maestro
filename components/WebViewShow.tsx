@@ -1515,9 +1515,12 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             
             let currentMeasureIndex = 0;
             let currentBeat = 0;
+            let metronomeInterval = null;
             
-            // Calculate interval for 120 BPM (60000ms / 120 = 500ms per beat)
-            const interval = 60000 / 120; // 500ms
+            // Function to calculate interval based on tempo
+            function getIntervalForTempo(tempo) {
+                return 60000 / tempo; // Convert BPM to milliseconds per beat
+            }
             
             // Function to update tempo bar for current measure
             function updateTempoBarForMeasure(measureIndex) {
@@ -1535,70 +1538,86 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
                 console.log('Updated tempo bar for measure', measureIndex + 1, 'with', numerator, 'beats');
             }
             
-            // Skip first beat and start with beat 2
-            currentBeat = 1; // Start at beat 2 (index 1)
-            updateTempoBarForMeasure(currentMeasureIndex);
-            updateTempoBar(0, currentMeasureIndex, show.measures[currentMeasureIndex].timeSignature.numerator); // Light up first segment immediately
-            
-            // Play high note immediately
-            playClick(true);
-            
-            // Set up interval for continuous playback
-            metronomeInterval = setInterval(() => {
-                if (isPlaying) {
-                    // Check if this is beat 1 of the measure
-                    const isDownbeat = (currentBeat === 0);
-                    playClick(isDownbeat);
-                    
-                    const currentMeasure = show.measures[currentMeasureIndex];
-                    const numerator = currentMeasure.timeSignature.numerator;
-                    
-                    // Check if this is the very last beat of the show
-                    const isLastBeatOfShow = (currentMeasureIndex >= show.measures.length - 1 && currentBeat === numerator - 1);
-                    
-                    currentBeat++;
-                    
-                    if (currentBeat >= numerator) {
-                        // Move to next measure
-                        currentMeasureIndex++;
-                        currentBeat = 0;
+            // Function to start metronome with current measure's tempo
+            function startMetronomeWithTempo() {
+                if (metronomeInterval) {
+                    clearInterval(metronomeInterval);
+                }
+                
+                const currentMeasure = show.measures[currentMeasureIndex];
+                const tempo = currentMeasure.tempo;
+                const interval = getIntervalForTempo(tempo);
+                
+                console.log('Starting metronome for measure', currentMeasureIndex + 1, 'at', tempo, 'BPM (interval:', interval, 'ms)');
+                
+                // Play first beat immediately
+                playClick(true);
+                updateTempoBar(0, currentMeasureIndex, currentMeasure.timeSignature.numerator);
+                
+                // Set up interval for continuous playback
+                metronomeInterval = setInterval(() => {
+                    if (isPlaying) {
+                        // Check if this is beat 1 of the measure
+                        const isDownbeat = (currentBeat === 0);
+                        playClick(isDownbeat);
                         
-                        if (currentMeasureIndex >= show.measures.length) {
-                            // End of show - wait for the last beat to complete
-                            setTimeout(() => {
-                                stopMetronome();
-                            }, interval);
+                        const currentMeasure = show.measures[currentMeasureIndex];
+                        const numerator = currentMeasure.timeSignature.numerator;
+                        
+                        // Check if this is the very last beat of the show
+                        const isLastBeatOfShow = (currentMeasureIndex >= show.measures.length - 1 && currentBeat === numerator - 1);
+                        
+                        currentBeat++;
+                        
+                        if (currentBeat >= numerator) {
+                            // Move to next measure
+                            currentMeasureIndex++;
+                            currentBeat = 0;
+                            
+                            if (currentMeasureIndex >= show.measures.length) {
+                                // End of show - wait for the last beat to complete
+                                setTimeout(() => {
+                                    stopMetronome();
+                                }, interval);
+                                return;
+                            }
+                            
+                            // Start new metronome with new measure's tempo
+                            startMetronomeWithTempo();
                             return;
                         }
                         
-                        // Don't update tempo bar yet - wait until next beat
-                    }
-                    
-                    // Update tempo bar for new measure on the first beat of the new measure
-                    if (currentBeat === 1 && currentMeasureIndex > 0) {
-                        updateTempoBarForMeasure(currentMeasureIndex);
-                    }
-                    
-                    // Update tempo bar to show the beat that just played
-                    // Handle the case where we're moving to the next measure
-                    if (currentBeat === 0) {
-                        // We just moved to a new measure, show the last beat of the previous measure
-                        const previousMeasure = show.measures[currentMeasureIndex - 1];
-                        const previousNumerator = previousMeasure.timeSignature.numerator;
-                        updateTempoBar(previousNumerator - 1, currentMeasureIndex - 1, previousNumerator);
-                    } else if (isLastBeatOfShow) {
-                        // This is the very last beat of the show
-                        const lastMeasure = show.measures[currentMeasureIndex];
-                        const lastNumerator = lastMeasure.timeSignature.numerator;
-                        updateTempoBar(lastNumerator - 1, currentMeasureIndex, lastNumerator);
+                        // Update tempo bar for new measure on the first beat of the new measure
+                        if (currentBeat === 1 && currentMeasureIndex > 0) {
+                            updateTempoBarForMeasure(currentMeasureIndex);
+                        }
+                        
+                        // Update tempo bar to show the beat that just played
+                        // Handle the case where we're moving to the next measure
+                        if (currentBeat === 0) {
+                            // We just moved to a new measure, show the last beat of the previous measure
+                            const previousMeasure = show.measures[currentMeasureIndex - 1];
+                            const previousNumerator = previousMeasure.timeSignature.numerator;
+                            updateTempoBar(previousNumerator - 1, currentMeasureIndex - 1, previousNumerator);
+                        } else if (isLastBeatOfShow) {
+                            // This is the very last beat of the show
+                            const lastMeasure = show.measures[currentMeasureIndex];
+                            const lastNumerator = lastMeasure.timeSignature.numerator;
+                            updateTempoBar(lastNumerator - 1, currentMeasureIndex, lastNumerator);
+                        } else {
+                            updateTempoBar(currentBeat - 1, currentMeasureIndex, currentMeasure.timeSignature.numerator);
+                        }
                     } else {
-                        updateTempoBar(currentBeat - 1, currentMeasureIndex, currentMeasure.timeSignature.numerator);
+                        // Stop if playing state changed
+                        stopMetronome();
                     }
-                } else {
-                    // Stop if playing state changed
-                    stopMetronome();
-                }
-            }, interval);
+                }, interval);
+            }
+            
+            // Initialize metronome with first measure's tempo
+            currentBeat = 1; // Start at beat 2 (index 1)
+            updateTempoBarForMeasure(currentMeasureIndex);
+            startMetronomeWithTempo();
         }
         
         // Stop metronome
@@ -1613,6 +1632,10 @@ const WebViewShow: React.FC<WebViewShowProps> = ({
             isPlaying = false;
             document.getElementById('playButton').classList.remove('playing');
             document.getElementById('iconContainer').classList.remove('playing');
+            
+            // Reset position for next play
+            currentMeasureIndex = 0;
+            currentBeat = 1;
         }
         
         // Update tempo bar to highlight current beat
