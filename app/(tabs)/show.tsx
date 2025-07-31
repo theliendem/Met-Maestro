@@ -1,11 +1,13 @@
+import { PlaybackOptionsPage } from '@/components/PlaybackOptionsPage';
+import { SettingsModal } from '@/components/SettingsModal';
+import { SettingsPage } from '@/components/SettingsPage';
 import { ThemedView } from '@/components/ThemedView';
-import WebViewShow from '@/components/WebViewShow';
-import { AppTheme } from '@/theme/AppTheme';
+import WebViewShow, { WebViewShowRef } from '@/components/WebViewShow';
+import { useAppTheme } from '@/theme/AppTheme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
 
 // Show data structure
@@ -14,6 +16,7 @@ interface Measure {
   timeSignature: { numerator: number; denominator: number };
   tempo: number;
   count: number; // number of measures
+  letter?: string; // optional letter to signify different parts of the show
 }
 
 interface Show {
@@ -27,11 +30,23 @@ interface Show {
 export default function ShowModeScreen() {
   const [shows, setShows] = useState<Show[]>([]);
   const [selectedShow, setSelectedShow] = useState<string>('');
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [playbackOptionsVisible, setPlaybackOptionsVisible] = useState(false);
+  const [currentSound, setCurrentSound] = useState('synth');
+  const themeColors = useAppTheme().colors;
+  const theme = useAppTheme();
+  const webViewRef = useRef<WebViewShowRef>(null);
 
   // Load shows from storage on component mount
   useEffect(() => {
     loadShows();
+    loadSoundType();
   }, []);
+
+  // Monitor playback options modal state
+  useEffect(() => {
+    console.log('playbackOptionsVisible changed to:', playbackOptionsVisible);
+  }, [playbackOptionsVisible]);
 
   const loadShows = async () => {
     try {
@@ -54,6 +69,18 @@ export default function ShowModeScreen() {
       }
     } catch (error) {
       console.error('Error loading shows:', error);
+    }
+  };
+
+  const loadSoundType = async () => {
+    try {
+      const savedSound = await AsyncStorage.getItem('metMaestro_soundType');
+      if (savedSound) {
+        setCurrentSound(savedSound);
+        console.log('Loaded sound type:', savedSound);
+      }
+    } catch (error) {
+      console.error('Error loading sound type:', error);
     }
   };
 
@@ -254,10 +281,99 @@ export default function ShowModeScreen() {
     );
   };
 
+  const handleMessage = (event: any) => {
+    try {
+      const message = JSON.parse(event.nativeEvent.data);
+      console.log('Received message from WebView:', message);
+
+      switch (message.type) {
+        case 'SELECT_SHOW':
+          setSelectedShow(message.showId);
+          break;
+        case 'ADD_SHOW':
+          handleAddShow();
+          break;
+        case 'RENAME_SHOW':
+          handleRenameShow(message.showId, message.newName);
+          break;
+        case 'UPDATE_SHOW_MEASURES':
+          handleUpdateShowMeasures(message.showId, message.measures);
+          break;
+        case 'DELETE_SHOW':
+          handleDeleteShow(message.showId);
+          break;
+        case 'MEASURE_COMPLETED':
+          console.log('Measure completed:', message);
+          break;
+        case 'OPEN_SETTINGS':
+          console.log('Opening settings...');
+          openSettings();
+          break;
+        case 'OPEN_PLAYBACK_OPTIONS':
+          console.log('Received OPEN_PLAYBACK_OPTIONS message');
+          openPlaybackOptions();
+          break;
+        default:
+          console.log('Unknown message type:', message.type);
+      }
+    } catch (error) {
+      console.error('Error parsing message from WebView:', error);
+    }
+  };
+
+  const openSettings = () => {
+    setSettingsVisible(true);
+  };
+
+  const closeSettings = () => {
+    setSettingsVisible(false);
+  };
+
+  const openPlaybackOptions = () => {
+    console.log('Opening playback options modal...');
+    console.log('Current playbackOptionsVisible:', playbackOptionsVisible);
+    setPlaybackOptionsVisible(true);
+    console.log('Set playbackOptionsVisible to true');
+  };
+
+  const closePlaybackOptions = () => {
+    setPlaybackOptionsVisible(false);
+  };
+
+  const handlePlaybackOptionsChange = (options: {
+    startType: 'beginning' | 'measure' | 'letter';
+    startMeasure: string;
+    startLetter: string;
+    endType: 'beginning' | 'measure' | 'letter';
+    endMeasure: string;
+    endLetter: string;
+  }) => {
+    // Update the WebView with new playback options
+    if (webViewRef.current) {
+      webViewRef.current.injectJavaScript(`
+        if (window.updatePlaybackOptions) {
+          window.updatePlaybackOptions(${JSON.stringify(options)});
+        }
+      `);
+    }
+  };
+
+  const handleSoundChange = async (soundType: string) => {
+    try {
+      await AsyncStorage.setItem('metMaestro_soundType', soundType);
+      setCurrentSound(soundType);
+      console.log('Saved sound type:', soundType);
+    } catch (error) {
+      console.error('Error saving sound type:', error);
+      // Still update the state even if saving fails
+      setCurrentSound(soundType);
+    }
+  };
+
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { backgroundColor: themeColors.background }]}>
       <WebViewShow 
-        themeColors={AppTheme.colors} 
+        themeColors={{...themeColors, fontSize: theme.typography.fontSize}} 
         shows={shows}
         selectedShow={selectedShow}
         onAddShow={handleAddShow}
@@ -265,27 +381,29 @@ export default function ShowModeScreen() {
         onRenameShow={handleRenameShow}
         onUpdateShowMeasures={handleUpdateShowMeasures}
         onDeleteShow={handleDeleteShow}
-        onMessage={async (event) => {
-          try {
-            const message = JSON.parse(event.nativeEvent.data);
-            if (message.type === 'EXPORT_SHOW') {
-              const show = message.showData;
-              const fileName = (show.name || 'show').replace(/[^a-zA-Z0-9-_]/g, '_') + '.json';
-              const fileUri = FileSystem.cacheDirectory + fileName;
-              await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(show, null, 2));
-              if (await Sharing.isAvailableAsync()) {
-                await Sharing.shareAsync(fileUri, { mimeType: 'application/json' });
-              } else {
-                alert('Sharing is not available on this device.');
-              }
-            } else if (message.type === 'IMPORT_SHOW') {
-              await handleImportShow();
-            }
-          } catch (e) {
-            console.error('Error handling WebView message:', e);
-          }
-        }}
+        onOpenSettings={openSettings}
+        soundType={currentSound}
+        onSoundChange={handleSoundChange}
+        onMessage={handleMessage}
+        ref={webViewRef}
       />
+      <SettingsModal visible={settingsVisible} onClose={closeSettings}>
+        <SettingsPage 
+          onClose={closeSettings} 
+          currentSound={currentSound}
+          onSoundChange={handleSoundChange}
+        />
+      </SettingsModal>
+      <SettingsModal visible={playbackOptionsVisible} onClose={closePlaybackOptions}>
+        <PlaybackOptionsPage
+          onClose={closePlaybackOptions}
+          currentSound={currentSound}
+          onSoundChange={handleSoundChange}
+          totalMeasures={shows.find(s => s.id === selectedShow)?.measures?.length || 1}
+          currentShow={shows.find(s => s.id === selectedShow)}
+          onPlaybackOptionsChange={handlePlaybackOptionsChange}
+        />
+      </SettingsModal>
     </ThemedView>
   );
 }
@@ -293,6 +411,5 @@ export default function ShowModeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: AppTheme.colors.background,
   },
 }); 

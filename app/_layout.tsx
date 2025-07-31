@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { Colors } from '@/constants/Colors';
+import { ThemeProvider as AppThemeProvider } from '@/theme/ThemeContext';
 import { MD3DarkTheme, MD3LightTheme, PaperProvider, Portal } from 'react-native-paper';
 import { PermissionInitializer } from '../components/PermissionInitializer';
 import { initializeAudioSession } from '../utils/audioSession';
@@ -35,7 +36,7 @@ const paperDarkTheme = {
   },
 };
 
-export default function RootLayout() {
+function RootLayout() {
   // Force dark mode for consistent UI
   const colorScheme = 'dark';
   const [loaded] = useFonts({
@@ -53,20 +54,24 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={DarkTheme}>
-      <PaperProvider theme={paperDarkTheme}>
-        <Portal.Host>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <PermissionInitializer>
-              <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-              <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-            </PermissionInitializer>
-          </GestureHandlerRootView>
-        </Portal.Host>
-      </PaperProvider>
-    </ThemeProvider>
+    <AppThemeProvider>
+      <ThemeProvider value={DarkTheme}>
+        <PaperProvider theme={paperDarkTheme}>
+          <Portal.Host>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <PermissionInitializer>
+                <Stack>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+                <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+              </PermissionInitializer>
+            </GestureHandlerRootView>
+          </Portal.Host>
+        </PaperProvider>
+      </ThemeProvider>
+    </AppThemeProvider>
   );
 }
+
+export default RootLayout;

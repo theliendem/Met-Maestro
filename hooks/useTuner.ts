@@ -20,6 +20,12 @@ export function useTuner(active: boolean = true) {
   const [error, setError] = useState<string | null>(null);
   const freqBuffer = useRef<number[]>([]);
   const missedCount = useRef(0);
+  const persistenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastValidData = useRef<{
+    note: string | null;
+    freq: number | null;
+    cents: number | null;
+  } | null>(null);
 
   // Use the audio stream hook
   const { chunk, permission, error: audioError } = useAudioStream();
@@ -36,6 +42,11 @@ export function useTuner(active: boolean = true) {
       setCents(null);
       freqBuffer.current = [];
       missedCount.current = 0;
+      lastValidData.current = null;
+      if (persistenceTimeoutRef.current) {
+        clearTimeout(persistenceTimeoutRef.current);
+        persistenceTimeoutRef.current = null;
+      }
       return;
     }
     if (!chunk) return;
@@ -46,18 +57,49 @@ export function useTuner(active: boolean = true) {
         freqBuffer.current.push(detectedFreq);
         if (freqBuffer.current.length > SMOOTHING) freqBuffer.current.shift();
         const avgFreq = freqBuffer.current.reduce((a, b) => a + b, 0) / freqBuffer.current.length;
-        setFreq(avgFreq);
         const { note, octave, midi } = freqToNote(avgFreq);
-        setNote(noteToString(note, octave));
-        setCents(getCents(avgFreq, midi));
+        const noteString = noteToString(note, octave);
+        const centsValue = getCents(avgFreq, midi);
+        
+        // Update state
+        setFreq(avgFreq);
+        setNote(noteString);
+        setCents(centsValue);
+        
+        // Store last valid data
+        lastValidData.current = {
+          note: noteString,
+          freq: avgFreq,
+          cents: centsValue,
+        };
+        
+        // Clear any existing persistence timeout
+        if (persistenceTimeoutRef.current) {
+          clearTimeout(persistenceTimeoutRef.current);
+          persistenceTimeoutRef.current = null;
+        }
+        
         missedCount.current = 0; // reset missed counter
       } else {
         missedCount.current += 1;
         if (missedCount.current >= 4) {
           freqBuffer.current = [];
-          setFreq(null);
-          setNote(null);
-          setCents(null);
+          
+          // Start persistence timeout if we have last valid data
+          if (lastValidData.current && !persistenceTimeoutRef.current) {
+            persistenceTimeoutRef.current = setTimeout(() => {
+              setFreq(null);
+              setNote(null);
+              setCents(null);
+              lastValidData.current = null;
+              persistenceTimeoutRef.current = null;
+            }, 5000); // 5 seconds
+          } else if (!lastValidData.current) {
+            // No valid data to persist, clear immediately
+            setFreq(null);
+            setNote(null);
+            setCents(null);
+          }
         }
       }
     } catch (e) {
@@ -65,6 +107,11 @@ export function useTuner(active: boolean = true) {
       setFreq(null);
       setNote(null);
       setCents(null);
+      lastValidData.current = null;
+      if (persistenceTimeoutRef.current) {
+        clearTimeout(persistenceTimeoutRef.current);
+        persistenceTimeoutRef.current = null;
+      }
     }
   }, [chunk, permission, active]);
 
@@ -77,6 +124,11 @@ export function useTuner(active: boolean = true) {
       setCents(null);
       freqBuffer.current = [];
       missedCount.current = 0;
+      lastValidData.current = null;
+      if (persistenceTimeoutRef.current) {
+        clearTimeout(persistenceTimeoutRef.current);
+        persistenceTimeoutRef.current = null;
+      }
     };
   }, []);
 

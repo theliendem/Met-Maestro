@@ -1,6 +1,7 @@
 // Audio session configuration utility
 // Ensures metronome audio plays regardless of device silent mode
 
+import { Platform } from 'react-native';
 
 /**
  * Configure audio session to play through silent mode
@@ -30,6 +31,23 @@ export function initializeAudioSession() {
 export function activateAudioSession() {
   // expo-audio handles this automatically
   configureAudioSession();
+}
+
+/**
+ * Configure WebView audio session for silent mode bypass
+ * This is specifically for WebView-based audio playback
+ */
+export function configureWebViewAudioSession() {
+  if (Platform.OS === 'ios') {
+    // On iOS, we need to ensure the audio session is configured for playback
+    console.log('🔊 Configuring iOS WebView audio session for silent mode bypass');
+    
+    // The WebView should handle this automatically with the proper meta tags
+    // and allowsInlineMediaPlayback={true} setting
+  } else if (Platform.OS === 'android') {
+    // On Android, the WebView should handle this automatically
+    console.log('🔊 Configuring Android WebView audio session for silent mode bypass');
+  }
 }
 
 /**

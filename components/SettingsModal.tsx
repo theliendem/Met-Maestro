@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, Modal, PanResponder, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Button } from 'react-native-paper';
 import { ThemedText } from './ThemedText';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -103,10 +102,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
             <View style={styles.dragHandle} />
           </View>
           <TouchableOpacity activeOpacity={1} style={{ flex: 1 }} onPress={e => e.stopPropagation()}>
-            <ThemedText type="title" style={{ marginBottom: 16 }}>Settings</ThemedText>
+            <ThemedText type="title" style={{ marginBottom: 16 }}>
+              Settings
+            </ThemedText>
             {children || <ThemedText>Settings go here.</ThemedText>}
             <View style={{ marginTop: 24, alignItems: 'flex-end' }}>
-              <Button onPress={handleOverlayPress} mode="contained">Close</Button>
+              <TouchableOpacity 
+                onPress={handleOverlayPress} 
+                style={{
+                  backgroundColor: '#BB86FC',
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 80,
+                }}
+              >
+                <ThemedText style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
+                  Close
+                </ThemedText>
+              </TouchableOpacity>
             </View>
           </TouchableOpacity>
         </Animated.View>

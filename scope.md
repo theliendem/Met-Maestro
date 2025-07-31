@@ -426,30 +426,28 @@ Latency target ≤ 150 ms; no `expo-av` dependency.
 ---
 
 # **Potential future ideas**
-1. Subdivisions per beat
+1. ✅ Subdivisions per beat
 2. Accent patterns (e.g. for 7/8: O-o-O-o-O-o-o). Add in presets but also allow the user to create their own.
 3. ✅ Tap tempo: Add a button which lets the user set the tempo by tapping on the button consistently.
 4. Practice modes: the tempo gradually increases/decreases over time.
-5. Customizable sounds: offer a variety of different presets for sounds like woodblock, cowbell, electronic clicks etc.
+5. ✅ Customizable sounds: offer a variety of different presets for sounds like woodblock, cowbell, electronic clicks etc.
 6. Recording/playback? For practice, allow the user to record themself playing with the met then be able to listen back and check their timing.
 7. Timer/practice session log
 8. Polyrhythm support? maybe with visuals too
-9. Different themes for customizability
+9. ✅ Different themes for customizability
 - Make it so you can choose in settings if you want the UI to match your device's theme, or be in dark or light mode all the time.
 10. Add a stats page where you can see how much you've played each show, how long you've had the app open, etc.
-11. Reference tone playback (play A440 or selected reference pitch for ear-training)
-12. Transposition / notation filter (display notes as Bb/Eb instrument view)
-13. Live waveform or spectrum visualiser for tuner screen
-14. ✅ Make it so if you tap on the slider bar in the met mode, it'll go there (so you don't have necessarily have to slide)
-15. Expanding modal animation for popups: Implement a reusable modal component (using Reanimated 2) that animates by expanding from the tapped element's position and size to its final modal size/position, with the overlay and modal content fading in together. The animation should be smooth and visually connected to the origin element. This should apply to all modal popups in the app, including: BPM input modal, numerator/denominator input modals, "coming soon" modals for subdivision and sound buttons, and any future modal-based UI. The modal should animate back to the origin element when dismissed. Capture the origin element's layout (position/size) to drive the animation. Overlay should fade in/out in sync with the modal expansion/contraction.
-16. Add a swipe gesture where you can swipe left or right to the next/previous tab, with an animation.
-17. Music scanning feature: Allow users to scan their sheet music using the device camera, and the app automatically translates the time signatures, tempo markings, and measure structure into a show. This would use OCR (Optical Character Recognition) to detect musical notation and convert it into the app's show format.
+11. Live waveform or spectrum visualiser for tuner screen
+12. ✅ Make it so if you tap on the slider bar in the met mode, it'll go there (so you don't have necessarily have to slide)
+13. Add a swipe gesture where you can swipe left or right to the next/previous tab, with an animation.
+14. Music scanning feature: Allow users to scan their sheet music using the device camera, and the app automatically translates the time signatures, tempo markings, and measure structure into a show. This would use OCR (Optical Character Recognition) to detect musical notation and convert it into the app's show format.
+15. Add a "piano" section to tuner to allow for tuning to a note.
 
 ---
 
-# **NOTES TO SELF (ignore this section if you are an AI model reading this to build this project)**
+# **NOTES TO SELF**
 ## For submitting new versions to App Store:
-First increment version number and ios.buildNumber in app.json. THEN go into ios/MetMaestro/Info.plist and change the version and Bundle Version (VERY IMPORTANT!!! It will not work if you don't do both). THEN go into eas.json and make sure that build.development.simulator is false or does not exist. Then do `eas build -p ios --profile production` then `eas submit -p ios --latest`
+First increment version number and ios.buildNumber in app.json. THEN go into ios/MetMaestro/Info.plist and change the version and Bundle Version (VERY IMPORTANT!!! It will not work if you don't do both). Then do `eas build -p ios --profile production` then `eas submit -p ios --latest`
 ## For building to a local simulator:
 Before you make a build, go into eas.json and make sure that build.development.simulator is has `"simulator": true`. then make a local build using `eas build -p ios --profile development --local` (--local is important). Then extract the build-XXXXXX.tar.gz file. Then, run `xcrun simctl install booted MetMaestro.app` if a simulator is open, or run `xcrun simctl list devices` to view the UUID of all installed sims then `xcrun simctl install [UUID] build-simulator/MetMaestro.app`. It should then be installed on the specified sim. Finally, run `npx expo start` to start the dev server.
 

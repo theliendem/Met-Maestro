@@ -1,45 +1,50 @@
-// Tuner screen UI
-// TODO: Implement tuner UI using useTuner hook
-
+// Tuner screen UI using WebView
 import { SettingsModal } from '@/components/SettingsModal';
-import { ThemedText } from '@/components/ThemedText';
+import { SettingsPage } from '@/components/SettingsPage';
 import { ThemedView } from '@/components/ThemedView';
-import { AppTheme } from '@/theme/AppTheme';
-import { vh, vw } from '@/utils/responsive';
+import WebViewTuner from '@/components/WebViewTuner';
+import { useAppTheme } from '@/theme/AppTheme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, Linking, Platform, StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
 
 import { useTuner } from '../../hooks/useTuner';
 import { isMicPermissionGranted, requestMicPermission } from '../../utils/audioStream';
 
-export default function TunerScreen() {
-  // All hooks must be called before any return!
+// Debug mode - set to true to enable detailed logging
+const DEBUG_MODE = false;
+
+function TunerScreen() {
   const [permission, setPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown');
   const [checking, setChecking] = useState(true);
   const [requestedOnce, setRequestedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const needleAnim = useRef(new Animated.Value(0)).current;
   const [isFocused, setIsFocused] = useState(true);
   const [settingsVisible, setSettingsVisible] = useState(false);
-  const [lastDetectedNote, setLastDetectedNote] = useState<string | null>(null);
-  const [lastDetectedCents, setLastDetectedCents] = useState<string | null>(null);
-  const [lastDetectedFreq, setLastDetectedFreq] = useState<string | null>(null);
-  const [showDash, setShowDash] = useState(true);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [currentSound, setCurrentSound] = useState('synth');
+  const themeColors = useAppTheme().colors;
+  
+  // Debug logging function
+  const debugLog = (message: string, ...args: any[]) => {
+    if (DEBUG_MODE) {
+      console.log(`[TUNER DEBUG] ${message}`, ...args);
+    }
+  };
   
   // Track focus state and re-check permissions when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
+      debugLog('Tuner screen focused');
       setIsFocused(true);
       
       // Re-check microphone permission when screen comes into focus
       // This handles cases where user grants permission and returns to app
       const checkPermissionOnFocus = async () => {
+        debugLog('Checking permission on focus...');
         if (permission !== 'granted') {
           try {
             const granted = await isMicPermissionGranted();
+            debugLog('Permission check on focus result:', granted);
             setPermission(granted ? 'granted' : 'denied');
             setError(null);
           } catch (err) {
@@ -49,20 +54,29 @@ export default function TunerScreen() {
         }
       };
       
-      checkPermissionOnFocus();
+      // Add a small delay to ensure the screen is fully focused
+      setTimeout(() => {
+        checkPermissionOnFocus();
+      }, 100);
       
-      return () => setIsFocused(false);
+      return () => {
+        debugLog('Tuner screen unfocused');
+        setIsFocused(false);
+      };
     }, [permission])
   );
   
   const tuner = useTuner(isFocused);
 
+  // Initial permission check
   useEffect(() => {
-    (async () => {
+    const checkInitialPermission = async () => {
+      debugLog('Checking initial permission...');
       setChecking(true);
       setError(null);
       try {
         const granted = await isMicPermissionGranted();
+        debugLog('Initial permission check result:', granted);
         setPermission(granted ? 'granted' : 'denied');
       } catch (err) {
         console.error('Error checking initial permission:', err);
@@ -70,16 +84,22 @@ export default function TunerScreen() {
         setPermission('denied');
       }
       setChecking(false);
-    })();
+    };
+    
+    checkInitialPermission();
+    loadSoundType();
   }, []);
 
   // Periodically check permission status when denied to catch when user grants access
   useEffect(() => {
     if (permission === 'denied' && !checking) {
+      debugLog('Starting periodic permission check...');
       const interval = setInterval(async () => {
         try {
           const granted = await isMicPermissionGranted();
+          debugLog('Periodic permission check result:', granted);
           if (granted) {
+            debugLog('Permission granted during periodic check');
             setPermission('granted');
             setError(null);
             clearInterval(interval);
@@ -87,80 +107,32 @@ export default function TunerScreen() {
         } catch (err) {
           console.error('Error in permission check interval:', err);
         }
-      }, 1000); // Check every second
+      }, 2000); // Check every 2 seconds
 
-      return () => clearInterval(interval);
+      return () => {
+        debugLog('Clearing periodic permission check');
+        clearInterval(interval);
+      };
     }
   }, [permission, checking]);
 
-  // Animate needle (sharp/flat bar) with 5s hold logic
-  useEffect(() => {
-    let toValue = 0;
-    if (!showDash) {
-      // Use last detected or current detected value
-      if (tuner.cents !== null && tuner.cents !== undefined) {
-        toValue = Math.max(-30, Math.min(30, tuner.cents));
-      } else if (lastDetectedCents) {
-        // Parse the string value (e.g. '+5' or '-12')
-        const parsed = parseInt(lastDetectedCents, 10);
-        if (!isNaN(parsed)) toValue = Math.max(-30, Math.min(30, parsed));
-      }
-    }
-    Animated.timing(needleAnim, {
-      toValue,
-      duration: 120,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [tuner.cents, showDash, lastDetectedCents, needleAnim]);
-
-  // --- Tuner UI ---
-  const detected = tuner.note !== null && tuner.freq !== null && tuner.cents !== null && !tuner.error;
-
-  // Handle note label display logic
-  useEffect(() => {
-    if (detected && tuner.note) {
-      setLastDetectedNote(tuner.note);
-      setLastDetectedCents(tuner.cents !== null ? (tuner.cents > 0 ? `+${tuner.cents}` : `${tuner.cents}`) : null);
-      setLastDetectedFreq(tuner.freq !== null ? `${tuner.freq.toFixed(1)} Hz` : null);
-      setShowDash(false);
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    } else if (lastDetectedNote) {
-      // If we previously detected a note but now don't, start a 5s timer
-      if (!timeoutRef.current) {
-        timeoutRef.current = setTimeout(() => {
-          setShowDash(true);
-          timeoutRef.current = null;
-        }, 5000);
-      }
-    } else {
-      setShowDash(true);
-    }
-    // Cleanup on unmount
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
-  }, [detected, tuner.note, tuner.cents, tuner.freq, lastDetectedNote]);
-
   const handleRequestPermission = async () => {
+    debugLog('Handling permission request...');
     setChecking(true);
     setError(null);
     try {
       const granted = await requestMicPermission();
+      debugLog('Permission request result:', granted);
       
-      // If permission was granted, add a small delay and re-check to ensure
-      // the permission state is properly updated
       if (granted) {
-        // Small delay to allow the permission state to propagate
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Add a small delay and re-check to ensure the permission state is properly updated
+        debugLog('Permission granted, re-checking...');
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
         // Re-check the permission to ensure it's actually granted
         const confirmedGranted = await isMicPermissionGranted();
+        debugLog('Permission confirmation result:', confirmedGranted);
+        
         setPermission(confirmedGranted ? 'granted' : 'denied');
         if (!confirmedGranted) {
           setError('Permission was not properly granted. Please try again.');
@@ -180,213 +152,80 @@ export default function TunerScreen() {
   };
 
   const openSettings = () => {
-    if (Platform.OS === 'ios') {
-      Linking.openURL('app-settings:');
-    } else {
-      Linking.openSettings();
+    setSettingsVisible(true);
+  };
+
+  const closeSettings = () => {
+    setSettingsVisible(false);
+  };
+
+  const loadSoundType = async () => {
+    try {
+      const savedSound = await AsyncStorage.getItem('metMaestro_soundType');
+      if (savedSound) {
+        setCurrentSound(savedSound);
+        console.log('Loaded sound type:', savedSound);
+      }
+    } catch (error) {
+      console.error('Error loading sound type:', error);
     }
   };
 
-  // Only do conditional returns after all hooks
-  if (checking) {
-    return (
-      <ThemedView style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" style={{ marginBottom: 16 }} />
-        <ThemedText>Checking microphone permission…</ThemedText>
-      </ThemedView>
-    );
-  }
-
-  if (permission !== 'granted') {
-    return (
-      <ThemedView style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <ThemedText type="title" style={{ marginBottom: 16 }}>Microphone Access Needed</ThemedText>
-        <ThemedText style={{ textAlign: 'center', marginBottom: 24 }}>
-          To use the tuner, Met Maestro needs access to your device&apos;s microphone to listen and detect pitch in real time.
-        </ThemedText>
-        {error && (
-          <ThemedText style={{ marginBottom: 16, color: '#e67c73', textAlign: 'center' }}>
-            {error}
-          </ThemedText>
-        )}
-        {!requestedOnce ? (
-          <ThemedText style={{ marginBottom: 16, color: '#e67c73' }}>
-            Microphone access is currently denied or not granted.
-          </ThemedText>
-        ) : (
-          <ThemedText style={{ marginBottom: 16, color: '#e67c73' }}>
-            Permission denied. Please enable microphone access in your device settings.
-          </ThemedText>
-        )}
-        {!requestedOnce ? (
-          <ThemedText onPress={handleRequestPermission} style={{ color: '#0a7ea4', fontWeight: 'bold', fontSize: 18, marginBottom: 8 }} accessibilityRole="button">
-            Grant Microphone Access
-          </ThemedText>
-        ) : (
-          <ThemedText onPress={openSettings} style={{ color: '#0a7ea4', fontWeight: 'bold', fontSize: 18, marginBottom: 8 }} accessibilityRole="button">
-            Open Settings
-          </ThemedText>
-        )}
-      </ThemedView>
-    );
-  }
-
-  // Derive display string with enharmonic (e.g. A♯ / B♭)
-  let noteDisplay = '—';
-  const enhMap: Record<string, string> = {
-    'C#': 'D♭',
-    'D#': 'E♭',
-    'F#': 'G♭',
-    'G#': 'A♭',
-    'A#': 'B♭',
+  const handleSoundChange = async (soundType: string) => {
+    try {
+      await AsyncStorage.setItem('metMaestro_soundType', soundType);
+      setCurrentSound(soundType);
+      console.log('Saved sound type:', soundType);
+    } catch (error) {
+      console.error('Error saving sound type:', error);
+      // Still update the state even if saving fails
+      setCurrentSound(soundType);
+    }
   };
-  let noteToShow = null;
-  if (!showDash && lastDetectedNote) {
-    noteToShow = lastDetectedNote;
-  } else if (detected && tuner.note) {
-    noteToShow = tuner.note;
-  }
-  if (noteToShow) {
-    const base = noteToShow.slice(0, -1).replace('♯', '#');
-    const sharpDisplay = base.replace('#', '♯');
-    const enh = enhMap[base];
-    noteDisplay = enh ? `${sharpDisplay} / ${enh}` : sharpDisplay;
-  }
 
-  const isInTune = detected && Math.abs(tuner.cents ?? 999) <= 5;
-  const needleColor = showDash ? '#888' : (isInTune ? AppTheme.colors.accent : '#ff9800');
-  const noteLabelColor = showDash ? AppTheme.colors.text : (isInTune ? AppTheme.colors.accent : AppTheme.colors.text);
-  const freq = (!showDash && lastDetectedFreq) ? lastDetectedFreq : (detected && tuner.freq !== null ? `${tuner.freq.toFixed(1)} Hz` : '—');
-  const cents = (!showDash && lastDetectedCents) ? lastDetectedCents : (detected && tuner.cents !== null ? (tuner.cents > 0 ? `+${tuner.cents}` : `${tuner.cents}`) : '—');
-  const centsWithSymbol = cents !== '—' ? `${cents}¢` : '—';
+  const refreshPermission = async () => {
+    debugLog('Refreshing permission status...');
+    setChecking(true);
+    setError(null);
+    try {
+      const granted = await isMicPermissionGranted();
+      debugLog('Refresh permission result:', granted);
+      setPermission(granted ? 'granted' : 'denied');
+    } catch (err) {
+      console.error('Error refreshing permission:', err);
+      setError('Failed to check microphone permission');
+      setPermission('denied');
+    }
+    setChecking(false);
+  };
+
+  // Prepare tuner data for WebView
+  const tunerData = React.useMemo(() => ({
+    note: tuner.note,
+    freq: tuner.freq,
+    cents: tuner.cents,
+    error: tuner.error || error,
+    permission: checking ? 'unknown' : permission,
+  }), [tuner.note, tuner.freq, tuner.cents, tuner.error, error, checking, permission]);
 
   return (
-    <ThemedView style={styles.container}>
-      {/* Settings gear - hidden in tuner mode */}
-      {/* <SettingsButton onPress={() => setSettingsVisible(true)} /> */}
-      {/* Settings Modal */}
-      <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
-
-      {/* Sharp / Flat bar & reference labels */}
-      <View style={styles.barWrapper}>
-        {/* Reference cent labels */}
-        <ThemedText style={styles.refZero}>0¢</ThemedText>
-        <ThemedText style={styles.refMinus}>-30¢</ThemedText>
-        <ThemedText style={styles.refPlus}>+30¢</ThemedText>
-        {/* Animated bar */}
-        <Animated.View
-          style={[
-            styles.bar,
-            {
-              backgroundColor: needleColor,
-              opacity: detected ? 1 : 0.5,
-              transform: [
-                // Move bar origin to bottom center, rotate, then move back
-                { translateY: stylesConst.BAR_HEIGHT * 0.8 / 2 },
-                { rotate: needleAnim.interpolate({ inputRange: [-30, 0, 30], outputRange: ['-90deg', '0deg', '90deg'] }) },
-                { translateY: -stylesConst.BAR_HEIGHT * 0.8 / 2 },
-              ],
-            },
-          ]}
+    <ThemedView style={{ flex: 1 }}>
+      <WebViewTuner 
+        themeColors={themeColors} 
+        tunerData={tunerData}
+        onRequestPermission={handleRequestPermission}
+        onOpenSettings={openSettings}
+        onRefreshPermission={refreshPermission}
+      />
+      <SettingsModal visible={settingsVisible} onClose={closeSettings}>
+        <SettingsPage 
+          onClose={closeSettings} 
+          currentSound={currentSound}
+          onSoundChange={handleSoundChange}
         />
-      </View>
-
-      {/* Note display */}
-      <View style={styles.noteContainer}>
-        <ThemedText style={[styles.noteLabel, { color: noteLabelColor }]}>
-          {noteDisplay}
-        </ThemedText>
-      </View>
-
-      {/* Frequency and cents display */}
-      <View style={styles.infoContainer}>
-        <ThemedText style={styles.freqLabel}>{freq}</ThemedText>
-        <ThemedText style={[styles.centsLabel, { color: AppTheme.colors.accent }]}>{centsWithSymbol}</ThemedText>
-      </View>
+      </SettingsModal>
     </ThemedView>
   );
 }
 
-// --- Constants for styling calculations ---
-const stylesConst = {
-  BAR_HEIGHT: vh(18), // shorter bar
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: vw(10),
-    paddingVertical: vh(6),
-    backgroundColor: AppTheme.colors.background,
-  },
-  // Wrapper for bar & reference labels
-  barWrapper: {
-    width: vw(80), // wider wrapper to allow more label spread
-    height: stylesConst.BAR_HEIGHT,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginBottom: vh(7),
-  },
-  bar: {
-    width: 12,
-    height: stylesConst.BAR_HEIGHT * 0.8,
-    borderRadius: 2,
-    position: 'absolute',
-    bottom: 0,
-    // The bar will rotate about its bottom end using transformOrigin
-  },
-  refZero: {
-    position: 'absolute',
-    top: 0,
-    fontSize: vh(2.5),
-    color: '#9BA1A6',
-    textAlign: 'center',
-  },
-  refMinus: {
-    position: 'absolute',
-    bottom: 0,
-    left: vw(2), // push further out
-    fontSize: vh(2),
-    color: '#9BA1A6',
-  },
-  refPlus: {
-    position: 'absolute',
-    bottom: 0,
-    right: vw(2), // push further out
-    fontSize: vh(2),
-    color: '#9BA1A6',
-  },
-  noteContainer: {
-    marginBottom: vh(3),
-  },
-  noteLabel: {
-    fontSize: vh(8),
-    fontWeight: 'bold',
-    letterSpacing: 1.5,
-    textAlign: 'center',
-    includeFontPadding: false,
-    paddingTop: vh(6),
-  },
-  centsLabel: {
-    fontSize: vh(3),
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: vh(2.5),
-    letterSpacing: 1,
-  },
-  freqLabel: {
-    fontSize: vh(2.5),
-    color: '#888',
-    textAlign: 'center',
-    fontVariant: ['tabular-nums'],
-    marginBottom: vh(2),
-  },
-  infoContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginBottom: vh(2),
-  },
-}); 
+export default TunerScreen; 
