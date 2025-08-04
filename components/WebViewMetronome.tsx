@@ -442,48 +442,59 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
             display: inline-block;
         }
         
-        .subdivision-option {
+        .subdivision-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .subdivision-card {
             background: var(--surface);
-            border: 2px solid var(--icon);
+            border: 1px solid var(--icon);
             border-radius: 12px;
-            padding: 16px;
-            margin: 8px 0;
+            padding: 12px 8px;
             cursor: pointer;
             transition: all 0.2s ease;
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
+            text-align: center;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 16px;
+            justify-content: center;
+            gap: 6px;
+            min-height: 70px;
         }
         
-        .subdivision-option:hover {
+        .subdivision-card:hover {
+            border-color: var(--accent);
+            background: rgba(var(--accent-rgb), 0.05);
+        }
+        
+        .subdivision-card.selected {
             border-color: var(--accent);
             background: rgba(var(--accent-rgb), 0.1);
-        }
-        
-        .subdivision-option.selected {
-            border-color: var(--accent);
-            background: rgba(var(--accent-rgb), 0.2);
-        }
-        
-        .subdivision-title {
-            color: var(--text);
-            font-size: 18px;
-            font-weight: bold;
         }
         
         .subdivision-icon {
             font-size: 24px;
             line-height: 1;
-            flex-shrink: 0;
+            color: var(--text);
+            transition: color 0.2s ease;
         }
         
-        .subdivision-description {
-            color: var(--icon);
-            font-size: 14px;
+        .subdivision-card.selected .subdivision-icon {
+            color: var(--accent);
+        }
+        
+        .subdivision-title {
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 500;
+            margin: 0;
         }
         
         .modal {
@@ -503,7 +514,8 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
             background: var(--surface);
             border-radius: 16px;
             padding: 32px;
-            width: 320px;
+            width: 360px;
+            max-width: 90vw;
             text-align: center;
         }
         
@@ -640,32 +652,34 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
     <div class="modal" id="subdivisionModal">
         <div class="modal-content">
             <div class="modal-title">Choose Subdivision</div>
-            <div class="subdivision-option" data-subdivision="1">
-                <div class="subdivision-icon">♪</div>
-                <div class="subdivision-title">None</div>
-            </div>
-            <div class="subdivision-option" data-subdivision="2">
-                <div class="subdivision-icon">♫</div>
-                <div class="subdivision-title">Eighth</div>
-            </div>
-            <div class="subdivision-option" data-subdivision="3">
-                <div class="subdivision-icon">♫♪</div>
-                <div class="subdivision-title">Triplet</div>
-            </div>
-            <div class="subdivision-option" data-subdivision="4">
-                <div class="subdivision-icon">♫♫</div>
-                <div class="subdivision-title">Sixteenth</div>
-            </div>
-            <div class="subdivision-option" data-subdivision="5">
-                <div class="subdivision-icon">♫♫♪</div>
-                <div class="subdivision-title">Quintuplet</div>
-            </div>
-            <div class="subdivision-option" data-subdivision="6">
-                <div class="subdivision-icon">♫♫♫</div>
-                <div class="subdivision-title">Sixtuplet</div>
+            <div class="subdivision-grid">
+                <div class="subdivision-card" data-subdivision="1">
+                    <div class="subdivision-icon">♪</div>
+                    <div class="subdivision-title">None</div>
+                </div>
+                <div class="subdivision-card" data-subdivision="2">
+                    <div class="subdivision-icon">♫</div>
+                    <div class="subdivision-title">Eighth</div>
+                </div>
+                <div class="subdivision-card" data-subdivision="3">
+                    <div class="subdivision-icon">♫♪</div>
+                    <div class="subdivision-title">Triplet</div>
+                </div>
+                <div class="subdivision-card" data-subdivision="4">
+                    <div class="subdivision-icon">♫♫</div>
+                    <div class="subdivision-title">Sixteenth</div>
+                </div>
+                <div class="subdivision-card" data-subdivision="5">
+                    <div class="subdivision-icon">♫♫♪</div>
+                    <div class="subdivision-title">Quintuplet</div>
+                </div>
+                <div class="subdivision-card" data-subdivision="6">
+                    <div class="subdivision-icon">♫♫♫</div>
+                    <div class="subdivision-title">Sixtuplet</div>
+                </div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-btn cancel" id="subdivisionCancelBtn">Cancel</button>
+                <button class="modal-btn cancel" id="subdivisionCancelBtn">Close</button>
             </div>
         </div>
     </div>
@@ -688,6 +702,7 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
         let isTapBpmActive = false;
         let tapBpmTimeout = null;
         let currentSound = '${soundType}'; // Current sound type
+        let drbeatBuffer = null; // Audio buffer for drbeat sound
         
         // Global function to force stop metronome
         window.forceStopMetronome = function() {
@@ -751,10 +766,29 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
                     console.log('Audio context test failed:', testError);
                 }
                 
+                // Load drbeat audio buffer
+                loadDrbeatAudio();
+                
                 return true;
             } catch (e) {
                 console.error('AudioContext not supported:', e);
                 return false;
+            }
+        }
+        
+        // Load drbeat audio buffer
+        async function loadDrbeatAudio() {
+            try {
+                const response = await fetch('assets/sounds/drbeat.mp3');
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                drbeatBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                console.log('Drbeat audio loaded successfully');
+            } catch (error) {
+                console.error('Failed to load drbeat audio:', error);
+                drbeatBuffer = null;
             }
         }
         
@@ -1075,6 +1109,37 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
                 oscillator1.stop(startTime + 0.1);
                 oscillator2.stop(startTime + 0.1);
                 oscillator3.stop(startTime + 0.1);
+            } else if (currentSound === 'drbeat') {
+                // Drbeat sound - play the loaded audio file
+                if (drbeatBuffer) {
+                    const source = audioContext.createBufferSource();
+                    const gainNode = audioContext.createGain();
+                    
+                    source.buffer = drbeatBuffer;
+                    
+                    // Adjust volume based on downbeat
+                    gainNode.gain.setValueAtTime(isDownbeat ? 1.0 : 0.8, startTime);
+                    
+                    source.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    source.start(startTime);
+                } else {
+                    // Fallback to synth sound if drbeat buffer is not loaded
+                    console.warn('Drbeat buffer not loaded, falling back to synth sound');
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.frequency.setValueAtTime(isDownbeat ? 800 : 600, startTime);
+                    gainNode.gain.setValueAtTime(isDownbeat ? 0.3 : 0.2, startTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.start(startTime);
+                    oscillator.stop(startTime + duration);
+                }
             }
         }
         
@@ -1298,7 +1363,7 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
         
         function updateSubdivisionSelection() {
             // Remove selected class from all options
-            document.querySelectorAll('.subdivision-option').forEach(option => {
+            document.querySelectorAll('.subdivision-card').forEach(option => {
                 option.classList.remove('selected');
             });
             
@@ -1320,7 +1385,8 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
                 }, 10);
             }
             
-            hideSubdivisionModal();
+            // Don't close the modal - just update the selection
+            updateSubdivisionSelection();
         }
         
         // Event listeners
@@ -1417,7 +1483,7 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
         });
         
         // Subdivision option click handlers
-        document.querySelectorAll('.subdivision-option').forEach(option => {
+        document.querySelectorAll('.subdivision-card').forEach(option => {
             option.addEventListener('click', () => {
                 const newSubdivision = parseInt(option.getAttribute('data-subdivision'));
                 selectSubdivision(newSubdivision);
