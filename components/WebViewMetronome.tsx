@@ -696,6 +696,7 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
         let isPlaying = false;
         let tempo = 120;
         let subdivision = 1; // 1 = no subdivision, 2 = eighth notes, 3 = triplets, etc.
+        let pendingSubdivision = null; // New subdivision to apply on next downbeat
         let beatCount = 0; // Track which subdivision we're on within a beat
         let intervalId = null;
         let tapTimes = [];
@@ -1198,15 +1199,42 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
             playClick(true);
             beatCount++;
             
-            // Start the interval
+            // Start the interval with the smallest subdivision (base timing)
+            const baseInterval = calculateInterval();
+            let nextBeatTime = Date.now() + baseInterval;
+            
             intervalId = setInterval(() => {
-                if (isPlaying) {
-                    // First subdivision of each beat gets high note, others get low note
+                if (!isPlaying) return;
+                
+                const now = Date.now();
+                
+                // Check if we need to apply a pending subdivision change on the downbeat
+                const currentIsDownbeat = (beatCount % subdivision) === 0;
+                
+                if (pendingSubdivision !== null && currentIsDownbeat) {
+                    // Apply the pending subdivision change
+                    subdivision = pendingSubdivision;
+                    pendingSubdivision = null;
+                    
+                    // Reset beat count to start fresh with new subdivision
+                    beatCount = 0;
+                    
+                    // Recalculate timing for new subdivision
+                    const newInterval = calculateInterval();
+                    nextBeatTime = now + newInterval;
+                }
+                
+                // Check if it's time for the next beat
+                if (now >= nextBeatTime - 10) { // 10ms tolerance
                     const isDownbeat = (beatCount % subdivision) === 0;
                     playClick(isDownbeat);
                     beatCount++;
+                    
+                    // Schedule next beat
+                    const currentInterval = calculateInterval();
+                    nextBeatTime += currentInterval;
                 }
-            }, interval);
+            }, 5); // Check every 5ms for precise timing
             
             document.getElementById('playButton').innerHTML = '<div class="stop-icon"></div>';
             document.getElementById('playButton').classList.add('playing');
@@ -1227,6 +1255,13 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
             if (intervalId) {
                 clearInterval(intervalId);
                 intervalId = null;
+            }
+            
+            // Apply any pending subdivision change when stopping
+            if (pendingSubdivision !== null) {
+                subdivision = pendingSubdivision;
+                pendingSubdivision = null;
+                updateSubdivisionSelection();
             }
             
             // Reset beat count
@@ -1367,22 +1402,21 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
                 option.classList.remove('selected');
             });
             
-            // Add selected class to current subdivision
-            const currentOption = document.querySelector('[data-subdivision="' + subdivision + '"]');
+            // Add selected class to the subdivision that will be active (current or pending)
+            const activeSubdivision = pendingSubdivision !== null ? pendingSubdivision : subdivision;
+            const currentOption = document.querySelector('[data-subdivision="' + activeSubdivision + '"]');
             if (currentOption) {
                 currentOption.classList.add('selected');
             }
         }
         
         function selectSubdivision(newSubdivision) {
-            subdivision = newSubdivision;
-            
-            // Restart if currently playing
             if (isPlaying) {
-                stopMetronome();
-                setTimeout(() => {
-                    startMetronome();
-                }, 10);
+                // If metronome is playing, queue the subdivision change for the next downbeat
+                pendingSubdivision = newSubdivision;
+            } else {
+                // If not playing, apply immediately
+                subdivision = newSubdivision;
             }
             
             // Don't close the modal - just update the selection
@@ -1604,6 +1638,8 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
     </View>
   );
 });
+
+WebViewMetronome.displayName = 'WebViewMetronome';
 
 const styles = StyleSheet.create({
   container: {

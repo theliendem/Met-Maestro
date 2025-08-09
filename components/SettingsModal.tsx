@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, Modal, PanResponder, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ThemedText } from './ThemedText';
+import { useAppTheme } from '@/theme/AppTheme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const TOP_MARGIN = 96;
@@ -14,6 +15,7 @@ interface SettingsModalProps {
 export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, children }) => {
   const [internalVisible, setInternalVisible] = useState(visible);
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const appTheme = useAppTheme();
 
   // Show modal when parent requests
   useEffect(() => {
@@ -110,7 +112,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
               <TouchableOpacity 
                 onPress={handleOverlayPress} 
                 style={{
-                  backgroundColor: '#BB86FC',
+                  backgroundColor: appTheme.colors.accent,
                   paddingHorizontal: 24,
                   paddingVertical: 12,
                   borderRadius: 8,

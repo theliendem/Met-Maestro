@@ -102,6 +102,7 @@ export default function MetronomeScreen() {
         soundType={currentSound}
         onSoundChange={handleSoundChange}
       />
+      
       <SettingsModal visible={settingsVisible} onClose={closeSettings}>
         <SettingsPage 
           onClose={closeSettings} 
