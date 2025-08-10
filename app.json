@@ -2,7 +2,7 @@
   "expo": {
     "name": "Met Maestro",
     "slug": "met-maestro",
-    "version": "4.2",
+    "version": "4.3",
     "orientation": "portrait",
     "icon": "./met-maestro-logo.png",
     "scheme": "metmaestro",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.theliendem.metmaestro",
-      "buildNumber": "16",
+      "buildNumber": "17",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "Met Maestro needs microphone access to detect pitch for the tuner feature."
@@ -26,7 +26,7 @@
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ],
-      "versionCode": 18,
+      "versionCode": 19,
       "package": "com.theliendem.metmaestro"
     },
     "web": {

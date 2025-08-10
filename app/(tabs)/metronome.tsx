@@ -33,6 +33,13 @@ export default function MetronomeScreen() {
     loadSoundType();
   }, []);
 
+  // Update WebView colors when theme changes
+  useEffect(() => {
+    if (webViewRef.current) {
+      webViewRef.current.updateColors(themeColors);
+    }
+  }, [themeColors]);
+
   // Stop metronome when navigating away from this screen
   useFocusEffect(
     React.useCallback(() => {
@@ -86,10 +93,20 @@ export default function MetronomeScreen() {
       await AsyncStorage.setItem('metMaestro_soundType', soundType);
       setCurrentSound(soundType);
       console.log('Saved sound type:', soundType);
+      
+      // Update WebView sound dynamically without stopping metronome
+      if (webViewRef.current) {
+        webViewRef.current.updateSound(soundType);
+      }
     } catch (error) {
       console.error('Error saving sound type:', error);
       // Still update the state even if saving fails
       setCurrentSound(soundType);
+      
+      // Update WebView sound dynamically even if saving failed
+      if (webViewRef.current) {
+        webViewRef.current.updateSound(soundType);
+      }
     }
   };
 

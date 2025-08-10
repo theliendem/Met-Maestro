@@ -1,6 +1,7 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { configureWebViewAudioSession } from '../utils/audioSession';
 
 interface WebViewMetronomeProps {
   themeColors: {
@@ -20,6 +21,9 @@ interface WebViewMetronomeProps {
 export interface WebViewMetronomeRef {
   stopMetronome: () => void;
   reinitializeAudio: () => void;
+  updateSound: (soundType: string) => void;
+  updateColors: (colors: any) => void;
+  resetWebView: () => void;
 }
 
 // Helper function to convert hex color to RGB
@@ -30,9 +34,10 @@ const hexToRgb = (hex: string): string => {
 
 const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(({ themeColors, onOpenSettings, soundType = 'synth', onSoundChange }, ref) => {
   const webViewRef = useRef<WebView>(null);
-
-  // Expose stopMetronome function to parent component
-  useImperativeHandle(ref, () => ({
+  const [webViewKey, setWebViewKey] = useState(0); // For forcing WebView re-mount
+  
+  // Create methods object that can be used internally and exposed via ref
+  const methods = {
     stopMetronome: () => {
       console.log('WebViewMetronome: stopMetronome called');
       if (webViewRef.current) {
@@ -81,12 +86,63 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
           webViewRef.current.postMessage(JSON.stringify({
             type: 'REINITIALIZE_AUDIO'
           }));
+          
+          // Also inject JavaScript directly to ensure audio is reinitialized
+          webViewRef.current.injectJavaScript(`
+            (function() {
+              console.log('Force reinitializing audio via JavaScript injection');
+              if (typeof initAudio === 'function') {
+                initAudio();
+                console.log('Audio reinitialized via JavaScript injection');
+              }
+            })();
+          `);
         } catch (error) {
           console.log('Error sending reinitialize message:', error);
         }
       }
+    },
+    updateSound: (soundType: string) => {
+      console.log('WebViewMetronome: updateSound called with:', soundType);
+      if (webViewRef.current) {
+        try {
+          // Send message to WebView to update sound type
+          webViewRef.current.postMessage(JSON.stringify({
+            type: 'SOUND_CHANGE',
+            soundType: soundType
+          }));
+        } catch (error) {
+          console.log('Error sending sound change message:', error);
+        }
+      }
+    },
+    updateColors: (colors: any) => {
+      console.log('WebViewMetronome: updateColors called with:', colors);
+      if (webViewRef.current) {
+        try {
+          // Send message to WebView to update colors
+          webViewRef.current.postMessage(JSON.stringify({
+            type: 'COLOR_CHANGE',
+            colors: colors
+          }));
+        } catch (error) {
+          console.log('Error sending color change message:', error);
+        }
+      }
+    },
+    resetWebView: () => {
+      console.log('WebViewMetronome: resetWebView called');
+      try {
+        // Force re-mount the WebView by changing the key
+        setWebViewKey(prev => prev + 1);
+      } catch (error) {
+        console.log('Error resetting WebView:', error);
+      }
     }
-  }));
+  };
+
+  // Expose methods via the ref
+  useImperativeHandle(ref, () => methods);
 
   // Stop metronome when component unmounts
   useEffect(() => {
@@ -133,8 +189,8 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
     };
   }, []);
 
-  // HTML content for the complete metronome UI
-  const htmlContent = `
+  // HTML content for the complete metronome UI (memoized to prevent re-renders)
+  const htmlContent = useMemo(() => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -606,6 +662,81 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
             fill: var(--text);
             opacity: 0.8;
         }
+        
+        /* Troubleshooting Modal */
+        .troubleshooting-modal {
+            display: none;
+            position: fixed;
+            top: 10vh;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 90vw;
+            width: 320px;
+            z-index: 2000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--accent);
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .troubleshooting-title {
+            color: var(--text);
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .troubleshooting-description {
+            color: var(--text);
+            font-size: 14px;
+            margin-bottom: 24px;
+            text-align: center;
+            opacity: 0.8;
+            line-height: 1.4;
+            width: 100%;
+        }
+        
+        .troubleshooting-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        .troubleshooting-btn {
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            transition: all 0.2s ease;
+            flex: 1;
+            max-width: 120px;
+        }
+        
+        .troubleshooting-btn.dismiss {
+            background: var(--light-gray);
+            color: var(--text);
+        }
+        
+        .troubleshooting-btn.reset {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .troubleshooting-btn:hover {
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
@@ -684,6 +815,18 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
         </div>
     </div>
     
+    <!-- Troubleshooting Modal -->
+    <div class="troubleshooting-modal" id="troubleshootingModal">
+        <div class="troubleshooting-title">Sound not working?</div>
+        <div class="troubleshooting-description">
+            If you're not hearing any sound, try resetting the app. This will refresh the audio system.
+        </div>
+        <div class="troubleshooting-buttons">
+            <button class="troubleshooting-btn dismiss" id="dismissTroubleshootingBtn">Dismiss</button>
+            <button class="troubleshooting-btn reset" id="resetWebViewBtn">Reset App</button>
+        </div>
+    </div>
+
     <!-- Settings Button -->
     <div class="settings-button" id="settingsButton">
         <svg class="settings-icon" viewBox="0 0 24 24">
@@ -699,11 +842,17 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
         let pendingSubdivision = null; // New subdivision to apply on next downbeat
         let beatCount = 0; // Track which subdivision we're on within a beat
         let intervalId = null;
+        let nextBeatTime = null; // Next scheduled beat time (ms since epoch)
         let tapTimes = [];
         let isTapBpmActive = false;
         let tapBpmTimeout = null;
-        let currentSound = '${soundType}'; // Current sound type
+        let currentSound = 'synth'; // Current sound type - will be updated dynamically
         let drbeatBuffer = null; // Audio buffer for drbeat sound
+        
+        // Rapid tap detection for troubleshooting
+        let playButtonTaps = [];
+        let rapidTapThreshold = 6; // Number of taps
+        let rapidTapTimeWindow = 1500; // Time window in milliseconds
         
         // Global function to force stop metronome
         window.forceStopMetronome = function() {
@@ -726,14 +875,69 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
             console.log('Metronome force stopped');
         };
         
+        // Rapid tap detection for troubleshooting
+        function detectRapidTaps() {
+            const now = Date.now();
+            playButtonTaps.push(now);
+            
+            // Remove taps older than the time window
+            playButtonTaps = playButtonTaps.filter(tapTime => now - tapTime <= rapidTapTimeWindow);
+            
+            // Check if we've hit the threshold
+            if (playButtonTaps.length >= rapidTapThreshold) {
+                console.log('Rapid tapping detected - showing troubleshooting modal');
+                showTroubleshootingModal();
+                playButtonTaps = []; // Reset the tap counter
+            }
+        }
+        
+        // Show troubleshooting modal
+        function showTroubleshootingModal() {
+            const modal = document.getElementById('troubleshootingModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                resetTroubleshootingTimer();
+            }
+        }
+        
+        // Hide troubleshooting modal
+        function hideTroubleshootingModal() {
+            const modal = document.getElementById('troubleshootingModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        // Reset WebView (equivalent to closing and reopening app)
+        function resetWebView() {
+            // Send message to React Native to reset the WebView
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'RESET_WEBVIEW'
+            }));
+            hideTroubleshootingModal();
+        }
+        
+        // Timer for auto-hiding modal
+        let troubleshootingTimer = null;
+        function resetTroubleshootingTimer() {
+            if (troubleshootingTimer) {
+                clearTimeout(troubleshootingTimer);
+            }
+            troubleshootingTimer = setTimeout(() => {
+                hideTroubleshootingModal();
+            }, 10000); // 10 seconds
+        }
+        
         // Initialize audio context
         function initAudio() {
             try {
                 // Close existing audio context if it exists
                 if (audioContext && audioContext.state !== 'closed') {
+                    console.log('Closing existing audio context');
                     audioContext.close();
                 }
                 
+                console.log('Creating new audio context');
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 console.log('Audio context initialized successfully');
                 
@@ -1201,7 +1405,7 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
             
             // Start the interval with the smallest subdivision (base timing)
             const baseInterval = calculateInterval();
-            let nextBeatTime = Date.now() + baseInterval;
+            nextBeatTime = Date.now() + baseInterval;
             
             intervalId = setInterval(() => {
                 if (!isPlaying) return;
@@ -1291,12 +1495,12 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
             tempo = newTempo;
             updateTempoDisplay();
             
-            // Restart if currently playing
+            // If playing, adjust scheduling without stopping
             if (isPlaying) {
-                stopMetronome();
-                setTimeout(() => {
-                    startMetronome();
-                }, 10);
+                const now = Date.now();
+                const newInterval = calculateInterval();
+                // Schedule the next beat according to the new interval
+                nextBeatTime = now + newInterval;
             }
         }
         
@@ -1306,7 +1510,7 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
             tapTimes = [];
             document.getElementById('tapBpmBtn').classList.add('active');
             
-            // Set timeout to auto-disengage after 5 seconds
+            // Set timeout to auto-disengage after 5 seconds of inactivity
             if (tapBpmTimeout) {
                 clearTimeout(tapBpmTimeout);
             }
@@ -1324,13 +1528,19 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
                 tapTimes.shift();
             }
             
-            // Reset timeout on each tap
-            if (tapBpmTimeout) {
-                clearTimeout(tapBpmTimeout);
+            // Only reset timeout if there's been a significant gap (indicating inactivity)
+            // This prevents the timeout from resetting during active tapping
+            if (tapTimes.length >= 2) {
+                const lastInterval = now - tapTimes[tapTimes.length - 2];
+                if (lastInterval > 2000) { // If gap is more than 2 seconds, reset timeout
+                    if (tapBpmTimeout) {
+                        clearTimeout(tapBpmTimeout);
+                    }
+                    tapBpmTimeout = setTimeout(() => {
+                        stopTapBpm();
+                    }, 5000);
+                }
             }
-            tapBpmTimeout = setTimeout(() => {
-                stopTapBpm();
-            }, 5000);
             
             // Calculate BPM if we have at least 2 taps
             if (tapTimes.length >= 2) {
@@ -1425,6 +1635,9 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
         
         // Event listeners
         document.getElementById('playButton').addEventListener('click', () => {
+            // Detect rapid tapping for troubleshooting
+            detectRapidTaps();
+            
             // Ensure audio context is initialized on first user interaction
             if (!audioContext) {
                 if (!initAudio()) {
@@ -1535,9 +1748,8 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
         
         // Try to initialize audio context immediately for better silent mode support
         setTimeout(() => {
-            if (!audioContext) {
-                initAudio();
-            }
+            console.log('Auto-initializing audio on WebView load');
+            initAudio(); // Always reinitialize audio when WebView loads
         }, 100);
         
         // Add a global click handler to ensure audio context is initialized on first user interaction
@@ -1554,6 +1766,21 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
           window.ReactNativeWebView.postMessage(JSON.stringify({
             type: 'OPEN_SETTINGS'
           }));
+        });
+        
+        // Troubleshooting modal event listeners
+        document.getElementById('dismissTroubleshootingBtn').addEventListener('click', () => {
+            hideTroubleshootingModal();
+        });
+        
+        document.getElementById('resetWebViewBtn').addEventListener('click', () => {
+            resetWebView();
+        });
+        
+        // Reset timer when user interacts with the troubleshooting modal
+        document.getElementById('troubleshootingModal').addEventListener('click', (e) => {
+            e.stopPropagation(); // Don't close when clicking inside modal
+            resetTroubleshootingTimer(); // Reset the auto-hide timer
         });
         
         // Handle messages from React Native
@@ -1593,8 +1820,62 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
               console.log('Metronome forcefully stopped');
             } else if (message.type === 'REINITIALIZE_AUDIO') {
               console.log('Received REINITIALIZE_AUDIO message');
-              const success = initAudio(); // Re-initialize audio context
+              
+              // Stop any currently playing audio
+              if (isPlaying) {
+                isPlaying = false;
+                if (intervalId) {
+                  clearInterval(intervalId);
+                  intervalId = null;
+                }
+              }
+              
+              // Close existing audio context completely
+              if (audioContext && audioContext.state !== 'closed') {
+                console.log('Closing existing audio context for reinit');
+                audioContext.close();
+                audioContext = null;
+              }
+              
+              // Re-initialize audio context
+              const success = initAudio();
               console.log('Audio context re-initialized:', success);
+              
+              // Reset UI state
+              const playButton = document.getElementById('playButton');
+              if (playButton) {
+                playButton.classList.remove('playing');
+                playButton.innerHTML = '<div class="play-icon"></div>';
+              }
+              beatCount = 0;
+            } else if (message.type === 'SOUND_CHANGE') {
+              console.log('Received SOUND_CHANGE message:', message.soundType);
+              currentSound = message.soundType;
+              console.log('Sound type updated to:', currentSound);
+            } else if (message.type === 'COLOR_CHANGE') {
+              console.log('Received COLOR_CHANGE message:', message.colors);
+              // Update CSS custom properties
+              const root = document.documentElement;
+              const colors = message.colors;
+              if (colors) {
+                root.style.setProperty('--background', colors.background);
+                root.style.setProperty('--surface', colors.surface);
+                root.style.setProperty('--primary', colors.primary);
+                root.style.setProperty('--text', colors.text);
+                root.style.setProperty('--icon', colors.icon);
+                root.style.setProperty('--accent', colors.accent);
+                root.style.setProperty('--orange', colors.orange);
+                // Update RGB version for transparency use
+                const hexToRgb = (hex) => {
+                  const result = /^#?([a-f\\d]{2})([a-f\\d]{2})([a-f\\d]{2})$/i.exec(hex);
+                  return result ? \`\${parseInt(result[1], 16)}, \${parseInt(result[2], 16)}, \${parseInt(result[3], 16)}\` : '187, 134, 252';
+                };
+                root.style.setProperty('--accent-rgb', hexToRgb(colors.accent));
+                console.log('Colors updated');
+              }
+            } else if (message.type === 'RESET_WEBVIEW') {
+              console.log('Received RESET_WEBVIEW message');
+              // This will be handled by React Native to reload the WebView
             }
           } catch (error) {
             console.log('Error parsing message:', error);
@@ -1604,13 +1885,14 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
     </script>
 </body>
 </html>
-  `;
+  `, [webViewKey]); // Only recalculate when WebView is intentionally reset
 
 
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <WebView
+        key={webViewKey}
         ref={webViewRef}
         source={{ html: htmlContent }}
         style={styles.webview}
@@ -1620,7 +1902,19 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
         mediaPlaybackRequiresUserAction={false}
         allowsProtectedMedia={true}
         mixedContentMode="compatibility"
-        onLoad={() => console.log('WebView loaded')}
+        onLoad={() => {
+          console.log('WebView loaded');
+          // Give WebView a moment to initialize, then update everything
+          setTimeout(() => {
+            console.log('WebView loaded - updating sound, colors, and reinitializing audio');
+            // Update sound to current value
+            methods.updateSound(soundType);
+            // Update colors to current values
+            methods.updateColors(themeColors);
+            // Reinitialize audio
+            methods.reinitializeAudio();
+          }, 200);
+        }}
         onError={(error) => console.log('WebView error:', error)}
         onMessage={(event) => {
           try {
@@ -1629,6 +1923,33 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
               onOpenSettings();
             } else if (message.type === 'SOUND_CHANGE' && onSoundChange) {
               onSoundChange(message.sound);
+            } else if (message.type === 'RESET_WEBVIEW') {
+              console.log('Handling RESET_WEBVIEW message in React Native');
+              
+              // Configure audio session first
+              configureWebViewAudioSession();
+              
+              // Reset the WebView by re-mounting it
+              setWebViewKey(prev => prev + 1);
+              
+              // After WebView resets, restore settings and reinitialize audio system
+              setTimeout(() => {
+                console.log('First restore after WebView reset - updating sound, colors, and reinitializing audio');
+                configureWebViewAudioSession(); // Reconfigure audio session
+                methods.updateSound(soundType); // Restore sound setting
+                methods.updateColors(themeColors); // Restore color settings
+                methods.reinitializeAudio();
+              }, 200);
+              
+              setTimeout(() => {
+                console.log('Second reinitialize after WebView reset');
+                methods.reinitializeAudio();
+              }, 500);
+              
+              setTimeout(() => {
+                console.log('Final reinitialize after WebView reset');
+                methods.reinitializeAudio();
+              }, 1000);
             }
           } catch (error) {
             console.log('Error parsing WebView message:', error);
