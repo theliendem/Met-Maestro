@@ -2039,16 +2039,37 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
         let beatsPerMeasure = 4; // Configurable beats per measure
         let currentBeat = 0;
         let currentMeasure = 0;
+        let drbeatBuffer = null; // Audio buffer for drbeat sound
         
         // Initialize audio context
         function initAudio() {
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 console.log('Audio context initialized successfully');
+                
+                // Load drbeat audio buffer
+                loadDrbeatAudio();
+                
                 return true;
             } catch (e) {
                 console.error('AudioContext not supported:', e);
                 return false;
+            }
+        }
+        
+        // Load drbeat audio buffer
+        async function loadDrbeatAudio() {
+            try {
+                const response = await fetch('assets/sounds/drbeat.mp3');
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                drbeatBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                console.log('Drbeat audio loaded successfully');
+            } catch (error) {
+                console.error('Failed to load drbeat audio:', error);
+                drbeatBuffer = null;
             }
         }
         
@@ -2328,6 +2349,37 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                 oscillator1.stop(startTime + duration);
                 oscillator2.stop(startTime + duration);
                 oscillator3.stop(startTime + duration);
+            } else if (currentSound === 'drbeat') {
+                // Drbeat sound - play the loaded audio file
+                if (drbeatBuffer) {
+                    const source = audioContext.createBufferSource();
+                    const gainNode = audioContext.createGain();
+                    
+                    source.buffer = drbeatBuffer;
+                    
+                    // Adjust volume based on downbeat
+                    gainNode.gain.setValueAtTime(isDownbeat ? 1.0 : 0.8, startTime);
+                    
+                    source.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    source.start(startTime);
+                } else {
+                    // Fallback to synth sound if drbeat buffer is not loaded
+                    console.warn('Drbeat buffer not loaded, falling back to synth sound');
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.frequency.setValueAtTime(isDownbeat ? 800 : 600, startTime);
+                    gainNode.gain.setValueAtTime(isDownbeat ? 0.3 : 0.2, startTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.start(startTime);
+                    oscillator.stop(startTime + duration);
+                }
             }
         }
         
@@ -2707,9 +2759,6 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                 metronomeInterval = setInterval(() => {
                     if (isPlaying) {
                         // Check if this is beat 1 of a new measure
-                        // If this is the first beat of a measure, refresh the tempo bar so
-                        // the previous measure's final beat remains visible until the next
-                        // interval tick.
                         if (currentBeat === 0) {
                             updateTempoBar(beatsPerMeasure, currentTempo);
                             // Update measure number at the start of the measure
@@ -2743,6 +2792,7 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                             
                             // Update beats per measure and tempo for next measure
                             const nextMeasure = show.measures[currentMeasure];
+                            const previousTempo = currentTempo;
                             beatsPerMeasure = nextMeasure.timeSignature.numerator;
                             console.log('Updated to', beatsPerMeasure, 'beats per measure at', nextMeasure.tempo, 'BPM, time signature', nextMeasure.timeSignature.numerator + '/' + nextMeasure.timeSignature.denominator, 'for measure', currentMeasure + 1);
                             
@@ -2754,8 +2804,19 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                                 tempo: nextMeasure.tempo
                             }));
                             
-                            // Start new metronome with new measure's tempo
-                            startMetronomeWithTempo();
+                            // Check if tempo is changing - only add delay for tempo changes
+                            if (nextMeasure.tempo !== previousTempo) {
+                                console.log('Tempo change detected - adding small delay');
+                                // Add a small delay to let the last beat breathe a bit before tempo change
+                                setTimeout(() => {
+                                    if (isPlaying) {
+                                        startMetronomeWithTempo();
+                                    }
+                                }, 75); // Small 75ms delay to make last beat feel slightly longer
+                            } else {
+                                // No tempo change - start immediately
+                                startMetronomeWithTempo();
+                            }
                             return;
                         }
                     } else {
@@ -2897,5 +2958,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
+WebViewShow.displayName = 'WebViewShow';
 
 export default WebViewShow; 
