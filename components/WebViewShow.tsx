@@ -325,7 +325,7 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
         
         .tempo-segment.silent-beat {
             background-color: var(--medium-gray);
-            box-shadow: 0 0 8px var(--accent-40);
+            box-shadow: 0 0 12px var(--accent-70), 0 0 4px var(--accent-40);
         }
         
         .tempo-segment.count-off-segment {
@@ -842,6 +842,7 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
             display: grid;
             gap: 8px;
             margin: 20px 0;
+            padding-bottom: 30px;
             justify-content: center;
             overflow-x: auto;
         }
@@ -2369,7 +2370,6 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
         let beatsPerMeasure = 4; // Configurable beats per measure
         let currentBeat = 0;
         let currentMeasure = 0;
-        let drbeatBuffer = null; // Audio buffer for drbeat sound
         
         // Initialize audio context
         function initAudio() {
@@ -2377,8 +2377,6 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 console.log('Audio context initialized successfully');
                 
-                // Load drbeat audio buffer
-                loadDrbeatAudio();
                 
                 return true;
             } catch (e) {
@@ -2387,21 +2385,6 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
             }
         }
         
-        // Load drbeat audio buffer
-        async function loadDrbeatAudio() {
-            try {
-                const response = await fetch('assets/sounds/drbeat.mp3');
-                if (!response.ok) {
-                    throw new Error('HTTP error! status: ' + response.status);
-                }
-                const arrayBuffer = await response.arrayBuffer();
-                drbeatBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                console.log('Drbeat audio loaded successfully');
-            } catch (error) {
-                console.error('Failed to load drbeat audio:', error);
-                drbeatBuffer = null;
-            }
-        }
         
         // Helper function to compare beatSounds configurations
         function compareBeatSounds(beatSounds1, beatSounds2) {
@@ -2737,36 +2720,173 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                 oscillator2.stop(startTime + duration);
                 oscillator3.stop(startTime + duration);
             } else if (currentSound === 'drbeat') {
-                // Drbeat sound - play the loaded audio file
-                if (drbeatBuffer) {
-                    const source = audioContext.createBufferSource();
-                    const gainNode = audioContext.createGain();
-                    
-                    source.buffer = drbeatBuffer;
-                    
-                    // Adjust volume based on high/low sound
-                    gainNode.gain.setValueAtTime(shouldPlayHighSound ? 1.0 : 0.8, startTime);
-                    
-                    source.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-                    
-                    source.start(startTime);
-                } else {
-                    // Fallback to synth sound if drbeat buffer is not loaded
-                    console.warn('Drbeat buffer not loaded, falling back to synth sound');
-                    const oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
-                    
-                    oscillator.frequency.setValueAtTime(shouldPlayHighSound ? 800 : 600, startTime);
-                    gainNode.gain.setValueAtTime(shouldPlayHighSound ? 0.3 : 0.2, startTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-                    
-                    oscillator.start(startTime);
-                    oscillator.stop(startTime + duration);
+                // Drbeat sound - programmatically generated
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.frequency.setValueAtTime(shouldPlayHighSound ? 800 : 600, startTime);
+                gainNode.gain.setValueAtTime(shouldPlayHighSound ? 0.3 : 0.2, startTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.start(startTime);
+                oscillator.stop(startTime + duration);
+            } else if (currentSound === 'sharp') {
+                // Sharp sound - fairly short, extremely loud and percussive like a marching snare shot
+                const oscillator1 = audioContext.createOscillator();
+                const oscillator2 = audioContext.createOscillator();
+                const oscillator3 = audioContext.createOscillator();
+                const noiseBuffer = audioContext.createBuffer(1, 4096, audioContext.sampleRate);
+                const noiseData = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < 4096; i++) {
+                    noiseData[i] = Math.random() * 2 - 1;
                 }
+                const noiseSource = audioContext.createBufferSource();
+                noiseSource.buffer = noiseBuffer;
+                
+                const gainNode = audioContext.createGain();
+                const noiseGain = audioContext.createGain();
+                const filterNode = audioContext.createBiquadFilter();
+                const filterNode2 = audioContext.createBiquadFilter();
+                
+                // Sharp, cutting frequencies - higher for high sound
+                const baseFreq = shouldPlayHighSound ? 2400 : 1800;
+                
+                // Multiple oscillators for thick, sharp attack
+                oscillator1.frequency.setValueAtTime(baseFreq, startTime);
+                oscillator2.frequency.setValueAtTime(baseFreq * 1.5, startTime);
+                oscillator3.frequency.setValueAtTime(baseFreq * 2.2, startTime);
+                
+                // Square waves for sharp, cutting character
+                oscillator1.type = 'square';
+                oscillator2.type = 'square';
+                oscillator3.type = 'sawtooth';
+                
+                // High-pass filter for sharp, cutting tone
+                filterNode.type = 'highpass';
+                filterNode.frequency.setValueAtTime(800, startTime);
+                filterNode.Q.setValueAtTime(3, startTime);
+                
+                // Band-pass filter for snare-like character
+                filterNode2.type = 'bandpass';
+                filterNode2.frequency.setValueAtTime(baseFreq, startTime);
+                filterNode2.Q.setValueAtTime(8, startTime);
+                
+                // Extremely loud, sharp envelope - instant attack, fairly short decay
+                gainNode.gain.setValueAtTime(0, startTime);
+                gainNode.gain.linearRampToValueAtTime(shouldPlayHighSound ? 4.5 : 4.0, startTime + 0.0005); // Ultra-fast attack
+                gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.06); // Fairly short decay
+                
+                // Sharp noise burst for snare crack
+                noiseGain.gain.setValueAtTime(0, startTime);
+                noiseGain.gain.linearRampToValueAtTime(2.0, startTime + 0.0005); // Ultra-fast attack
+                noiseGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.008); // Very short noise burst
+                
+                // Connect oscillators through filters
+                oscillator1.connect(filterNode);
+                oscillator2.connect(filterNode);
+                oscillator3.connect(filterNode);
+                filterNode.connect(filterNode2);
+                
+                // Connect noise through filters
+                noiseSource.connect(noiseGain);
+                noiseGain.connect(filterNode2);
+                
+                // Final output
+                filterNode2.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Start everything
+                oscillator1.start(startTime);
+                oscillator2.start(startTime);
+                oscillator3.start(startTime);
+                noiseSource.start(startTime);
+                
+                // Stop everything
+                oscillator1.stop(startTime + 0.06);
+                oscillator2.stop(startTime + 0.06);
+                oscillator3.stop(startTime + 0.06);
+                noiseSource.stop(startTime + 0.008);
+            } else if (currentSound === 'snap') {
+                // Snap sound - extremely short, sharp and piercing like a powerful woodblock hit
+                const oscillator1 = audioContext.createOscillator();
+                const oscillator2 = audioContext.createOscillator();
+                const oscillator3 = audioContext.createOscillator();
+                const noiseBuffer = audioContext.createBuffer(1, 2048, audioContext.sampleRate);
+                const noiseData = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < 2048; i++) {
+                    noiseData[i] = Math.random() * 2 - 1;
+                }
+                const noiseSource = audioContext.createBufferSource();
+                noiseSource.buffer = noiseBuffer;
+                
+                const gainNode = audioContext.createGain();
+                const noiseGain = audioContext.createGain();
+                const filterNode = audioContext.createBiquadFilter();
+                const compressor = audioContext.createDynamicsCompressor();
+                
+                // Extremely high frequencies for piercing snap
+                const baseFreq = shouldPlayHighSound ? 3200 : 2800;
+                
+                // Multiple high-frequency oscillators for piercing attack
+                oscillator1.frequency.setValueAtTime(baseFreq, startTime);
+                oscillator2.frequency.setValueAtTime(baseFreq * 1.8, startTime);
+                oscillator3.frequency.setValueAtTime(baseFreq * 2.5, startTime);
+                
+                // Square waves for maximum sharpness
+                oscillator1.type = 'square';
+                oscillator2.type = 'square';
+                oscillator3.type = 'square';
+                
+                // High-pass filter for ultra-sharp, piercing tone
+                filterNode.type = 'highpass';
+                filterNode.frequency.setValueAtTime(1200, startTime);
+                filterNode.Q.setValueAtTime(6, startTime);
+                
+                // Compressor for punch and loudness
+                compressor.threshold.setValueAtTime(-10, startTime);
+                compressor.knee.setValueAtTime(0, startTime);
+                compressor.ratio.setValueAtTime(20, startTime);
+                compressor.attack.setValueAtTime(0, startTime);
+                compressor.release.setValueAtTime(0.01, startTime);
+                
+                // Extremely loud, instantaneous envelope - shortest possible
+                gainNode.gain.setValueAtTime(0, startTime);
+                gainNode.gain.linearRampToValueAtTime(shouldPlayHighSound ? 5.0 : 4.5, startTime + 0.0002); // Instantaneous attack
+                gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.025); // Extremely short decay
+                
+                // Sharp, piercing noise crack
+                noiseGain.gain.setValueAtTime(0, startTime);
+                noiseGain.gain.linearRampToValueAtTime(2.5, startTime + 0.0002); // Instantaneous attack
+                noiseGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.003); // Ultra-short noise burst
+                
+                // Connect oscillators
+                oscillator1.connect(filterNode);
+                oscillator2.connect(filterNode);
+                oscillator3.connect(filterNode);
+                
+                // Connect noise
+                noiseSource.connect(noiseGain);
+                noiseGain.connect(filterNode);
+                
+                // Through compressor for punch
+                filterNode.connect(compressor);
+                compressor.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Start everything
+                oscillator1.start(startTime);
+                oscillator2.start(startTime);
+                oscillator3.start(startTime);
+                noiseSource.start(startTime);
+                
+                // Stop everything quickly
+                oscillator1.stop(startTime + 0.025);
+                oscillator2.stop(startTime + 0.025);
+                oscillator3.stop(startTime + 0.025);
+                noiseSource.stop(startTime + 0.003);
             }
         }
         

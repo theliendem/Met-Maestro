@@ -1,378 +1,173 @@
 # Met Maestro App Plan
 
-## 1. Project Setup
-- **Initialize Expo Project**:  
-  - `npx create-expo-app met-maestro` ✅ *(Complete)*
-- **Install Dependencies**:  
-  - `npx expo install expo-audio` ✅ *(Complete)*
-  - UI library for dark mode (e.g., `react-native-paper`) ✅ *(Complete)*
-- **Add Timer Logic**:  
-  - Integrate [timer.js](https://raw.githubusercontent.com/musicandcode/Metronome/refs/heads/main/timer.js) as a utility. ✅ *(Complete & tested for accuracy)*
-- **Set up Dark Mode Theme and Global Styles**: ✅ *(Complete)*
+## 1. Project Setup ✅
+- **Initialize Expo Project**: `npx create-expo-app met-maestro` ✅
+- **Install Dependencies**: `npx expo install expo-audio`, UI library for dark mode ✅
+- **Add Timer Logic**: Integrate timer.js utility ✅
+- **Set up Dark Mode Theme and Global Styles**: ✅
 
 ---
 
 ## 2. App Structure
 
 ### Navigation
-- Use a tab or segmented control to switch between Met Mode and Show Mode.
+- Use tab navigation to switch between Met Mode, Show Mode, and Tuner.
 
 ### Screens/Components
-- **MetModeScreen**
-- **ShowModeScreen**
-- **TempoBar** (shared)
-- **ShowEditor** (for creating/editing shows)
-- **ShowList** (for loading/saving shows)
-- **Timer Utility** (from timer.js)
+- **MetModeScreen** - WebView-based metronome
+- **ShowModeScreen** - WebView-based show management and playback
+- **TunerScreen** - Real-time instrument tuner
+- **Shared Components**: TempoBar, Settings, Theme management
 
 ---
 
-## 3. Met Mode
+## 3. Met Mode ✅
 
-### UI Elements
-- **Time Signature Selector**:  
-  - **Visual Layout**:  
-    - Numerator:  
-      - Left chevron | Numerator value | Right chevron  
-    - Horizontal bar (visual separator, like a fraction line)  
-    - Denominator:  
-      - Left chevron | Denominator value | Right chevron  
-  - **Interaction**:  
-    - Tapping chevrons increments/decrements numerator or denominator.
-    - Only valid musical values allowed (e.g., denominators: 2, 4, 8, 16).
-- **Tempo Slider**:  
-  - Range (e.g., 40–240 BPM), with numeric display.
-- **Tempo Bar**:  
-  - Visually split into as many segments as the numerator.
-  - Highlights the current beat.
-- **Play/Stop Button**:  
-  - Large, central, with clear state indication.
+### Core Features
+- **Time Signature Selector**: Chevron-based navigation for numerator/denominator
+- **Tempo Slider**: 40-240 BPM range with numeric display
+- **Tempo Bar**: Visual beat highlighting synchronized with audio
+- **Play/Stop Button**: Large central control with clear state indication
+- **Subdivision Support**: 1-6 clicks per beat with musical notation
+- **Tap BPM**: Automatic tempo detection with 5-second timeout
 
-### Logic
-- **Timer**:  
-  - Use Timer utility for drift-corrected intervals.
-  - Calculate interval as `60000 / (BPM * (denominator/4))`.
-- **Audio**:  
-  - Use `expo-audio` to play a click on each beat.
-  - Optionally, a different sound for the downbeat.
-- **Tempo Bar Update**:  
-  - On each beat, update the highlighted segment.
+### Implementation
+- **WebView Architecture**: Self-contained HTML/CSS/JS with AudioContext
+- **Audio**: High/low notes for downbeat/offbeat, subdivision support
+- **Theme Integration**: Consistent with app-wide dark mode theme
+- **Performance**: Optimized with audio context management and caching
 
 ---
 
-## 4. Show Mode
+## 4. Show Mode ✅
 
-### UI Elements
-- **Show List**:  
-  - List of saved shows (load, rename, delete).
-- **Show Editor**:  
-  - **Add Measure Popup**:  
-    - Fields:
-      - Number of measures to add (e.g., 1–32)
-      - Time signature (using the same chevron-based selector as Met Mode)
-      - Tempo (BPM)
-    - User can quickly add, for example, 4 measures of 6/8 at 140 BPM.
-  - List of measures in the show (with time signature and tempo for each).
-  - Reorder measures (drag-and-drop).
-  - Remove individual measures.
-- **Tempo Bar**:  
-  - Updates according to the current measure.
-- **Play/Stop Button**:  
-  - Starts playback of the show.
-- **Count-in Indicator**:  
-  - Visual and audio indication of the 4-beat count-in before playback.
+### Core Features
+- **Show Management**: Create, load, rename, delete shows
+- **Measure Editor**: Add multiple measures with time signature and tempo
+- **Playback**: 4-beat count-in, measure-by-measure progression
+- **Import/Export**: File-based show sharing
+- **Persistence**: AsyncStorage for local show storage
 
-### Logic
-- **Show Data Structure**:  
-  - Array of measures, each with:
-    - `timeSignature` (e.g., { numerator: 6, denominator: 8 })
-    - `tempo` (BPM)
-    - (Optional: label, notes)
-- **Adding Measures**:  
-  - When adding, create N consecutive measures with the same settings.
-- **Playback**:
-  - 4-beat count-in (using first measure's settings).
-  - For each measure:
-    - Set timer interval and tempo bar.
-    - Play correct number of beats (numerator).
-    - On measure change, update timer and tempo bar.
-    - **Important**:  
-      - 6/4 = 6 quarter notes per measure  
-      - 6/8 = 6 eighth notes per measure (interval is half as fast as 6/4 at same BPM)
-- **Audio**:
-  - Use `expo-audio` for all clicks.
-  - Optionally, custom sounds for downbeats or accents.
-- **Persistence**:
-  - Use local storage (e.g., `AsyncStorage`) to save/load shows.
+### Implementation
+- **WebView Architecture**: Same audio timing and UI consistency as metronome
+- **Show Data Structure**: Array of measures with time signature and tempo
+- **Playback Logic**: Automatic timer and tempo bar updates between measures
+- **State Management**: Comprehensive show editing and playback controls
 
 ---
 
-## 5. Timing Logic
+## 5. Tuner Mode ✅
 
-- **Timer Utility**:  
-  - Use timer.js for all beat intervals.
-  - On each tick, trigger audio and UI updates.
-  - On measure change, stop and restart timer with new interval.
+### Core Features
+- **Real-time Pitch Detection**: YIN algorithm with 150ms latency target
+- **Audio Capture**: 16kHz mono PCM with react-native-live-audio-stream
+- **Visual Display**: Large note label with horizontal needle (±50 cents)
+- **Settings**: Reference pitch adjustment (415-466 Hz), cents display toggle
 
-- **Interval Calculation**:
-  - For a time signature of X/Y at N BPM:
-    - **Beat duration** = `60000 / (BPM * (4/Y))` ms
-
----
-
-## 6. UI/UX Design
-
-- **Dark Mode**:  
-  - Dark background, high-contrast text, minimalist controls.
-  - Accent colors for active beats, downbeats, and tempo bar highlights.
-- **Responsiveness**:  
-  - UI scales well on different device sizes.
-- **Accessibility**:  
-  - Large touch targets, clear labels, optional haptic feedback.
+### Implementation
+- **Audio Processing**: 16-bit PCM streaming with pitch detection worker
+- **Performance**: Moving average smoothing, battery optimization
+- **Permissions**: Automatic mic permission request with fallback UI
 
 ---
 
-## 7. Advanced Features (Optional/Future)
+## 6. UI/UX Design ✅
 
-- Subdivision support (e.g., 16th notes, triplets)
-- Accent patterns (customize which beats are accented)
-- Export/Import shows
-- Cloud sync
-- Vibration/haptic feedback
-- Visual themes
+### Theme System
+- **Global Dark Mode**: Consistent background, surface, and accent colors
+- **Theme Context**: Centralized theme management across all components
+- **Responsive Design**: Scales well across different device sizes
 
----
-
-## 8. Testing
-
-- Unit tests for timer logic and show data handling.
-- Manual testing for timing accuracy and UI responsiveness.
+### Accessibility
+- **Touch Targets**: Large buttons (80x80px) with clear visual feedback
+- **Visual Contrast**: High-contrast text and controls
+- **Haptic Feedback**: Optional vibration for better user experience
 
 ---
 
-## 9. References
+## 7. Performance & Optimization ✅
 
-- [expo-audio documentation](https://docs.expo.dev/versions/latest/sdk/audio/)
-- [Accurate Timer Logic (timer.js)](https://raw.githubusercontent.com/musicandcode/Metronome/refs/heads/main/timer.js)
+### WebView Performance
+- **Audio Context Management**: Lazy initialization and automatic cleanup
+- **Message Passing**: Optimized with 16ms batching and throttling
+- **Memory Management**: Comprehensive leak prevention and resource tracking
+- **Caching**: WebView HTML caching to reduce initialization overhead
 
----
-
-# **Phase 1**
-
-## **Step 1: Project Foundation & Core Utilities** ✅
-1. ✅ Initialize Expo project and set up version control.
-2. ✅ Install dependencies (`expo-audio`, UI library, etc.).
-3. ✅ Integrate and test the timer utility from timer.js.
-4. ✅ Set up a basic dark mode theme and global styles.
-
-## **Step 2: Met Mode Core Functionality** ✅
-1. ✅ Build the MetModeScreen layout and implement state management for time signature, tempo, and play state:
-   - ✅ Implement the time signature selector with chevrons and visual bar.
-   - ✅ Add the tempo slider and numeric display (with draggable thumb).
-   - ✅ Add the play/stop button.
-   - ✅ Add the tempo bar component.
-   - ✅ Use React state to manage time signature, tempo, and play state.
-2. ✅ Connect the timer utility to drive beat timing.
-3. ✅ Integrate expo-audio to play click sounds on each beat (with downbeat accent).
-4. ✅ Animate the tempo bar in sync with the beats.
-5. ⚠️ Potentially change from expo-audio to react-native-audio-playback so sounds can overlap and not get cut off. (Watch [this youtube video](https://www.youtube.com/watch?v=3PM9wjtqnzQ))
-
-## **Step 3: Show Mode Core Functionality** ✅
-1. ✅ Build the ShowModeScreen UI, implement local state logic for adding/deleting measures, creating/renaming/deleting shows, switching between shows, and persistence using AsyncStorage, and implement logic to add multiple measures at once.
-2. ✅ Add the ability to be able to edit measures (in compact mode) and import/export shows as files.
-3. ✅ Implement playback logic:
-   - ✅ 4-beat count-in (audio and visual). Make sure there's a banner that says "Count-in" when it starts.
-   - ✅ Play through all measures, updating timer and tempo bar as needed.
-   - ✅ Handle time signature and tempo changes between measures.
-4. ✅ Capture the value of all variables when the app is started and store it in a json/array, then when a show is done playing, reset to those values using that json/array to see if that fixes the second-time playback issue.
-
-## **Step 4: Polish & UX Enhancements**
-1. ✅ Refine dark mode UI for modern, minimalist look. (And consistent UI e.g. same colored buttons, background, section backgrounds etc.)
-2. ✅ Refine UI (make the play button larger, move the play button/tempo bar to the bottom on show mode)
-3. Add accessibility features (large touch targets, haptics, etc.).
-4. Add error handling and edge case management (e.g., invalid time signatures, empty shows).
-5. Optimize for performance and battery usage.
-
-# **Phase 2: Real-Time Instrument Tuner (iOS / Android)**
-
-Latency target ≤ 150 ms; no `expo-av` dependency.
-
-## **Step 5:  Research & Select Dependencies** ✅
-1. ✅ **Chosen:** `react-native-live-audio-stream` for real-time PCM audio (lowest latency, built for streaming, ideal for tuner use case).
-   - Not using `react-native-audio-record` (slightly higher latency, more for file recording).
-   - Not using `expo-av` (deprecated) or `react-native-webrtc` (overkill for audio-only, larger bundle).
-2. ✅ **Chosen:** YIN algorithm from `pitchfinder` for pitch detection (most accurate, robust to noise, standard for instrument tuners).
-   - Not using AMDF, Autocorrelation, or FFT (lower accuracy, more octave errors, less robust).
-3. ✅ Document the choice & reasoning in README.
-
-## **Step 6:  Install & Configure Audio Capture** ✅
-1. ✅ `npm install react-native-live-audio-stream pitchfinder`
-2. ✅ Request mic permission on first tuner use (iOS & Android) – show fallback UI on denial.
-3. ✅ Configure recorder: 16 kHz, mono, 16-bit PCM, buffer ≈ 2048 samples (~128 ms).
-4. ✅ Stream PCM chunks to JS *(Complete)*
-
-## **Step 7:  Implement Pitch-Detection Worker** ✅
-1. ✅ Create `utils/pitchDetector.ts` that wraps YIN *(Complete)*
-2. ✅ Smooth output with moving average; convert frequency → `{note, octave, cents}` *(Complete)*
-3. ✅ Provide React hook `usePitch()` for components.
-
-## **Step 8:  Build Tuner Screen UI** ✅
-1. ✅ New file `app/(tabs)/tuner.tsx`: *(Complete)*
-   - Large central note label (e.g., "A♯4").
-   - Horizontal/arc needle ±50 cents; color-coded (in-tune = blue, sharp/flat = orange).
-2. ✅ Animate needle with Reanimated/Animated *(Complete)*
-3. ✅ Start/stop recording on screen focus to save battery *(Complete)*
-4. ✅ Settings gear:
-   - Reference pitch slider (415–466 Hz, default 440).
-   - Toggle "Show cents" indicator.
-
-# **Phase 3: Fix UI theme and improve UI usability**
-
-## **Step 9:  Unify UI theme across all tabs** ✅
-1. ✅ Make every file use the same external `AppTheme.tsx` file for scalability/global changes.
-2. ✅ Make a global darkmode theme (background color and accent color)
-
-## **Step 10:  Fix UI for Met Mode** ✅
-1. ✅ Restructure met mode to find a general layout that I like.
-2. ✅ Add in three buttons on the corners (tap bpm, subdivision, sound)
-3. ✅ Implement tap bpm functionality (see potential ideas #3)
-
-# **Phase 4: Migrate Metronome to WebView with expo-audio**
-
-**Goal:** Replace React Native metronome components with WebView-based implementation using `expo-audio` with `new AudioContext()` for precise audio timing.
-
-## **Step 11: Install and Configure Dependencies** ✅
-1. ✅ **Install expo-audio:**
-   - Run `npx expo install expo-audio`
-   - Add `expo-audio` to plugins in `app.json`
-2. ✅ **Update app.json configuration:**
-   - Ensure expo-audio permissions are configured
-
-## **Step 12: Create WebView Metronome Component** ✅
-1. ✅ **Create `components/WebViewMetronome.tsx`:**
-   - Build WebView container with HTML/CSS/JS metronome
-   - Implement `new AudioContext()` for precise audio timing
-   - Add beat generation with different frequencies for downbeat/offbeat
-   - Include tempo bar visualization with beat highlighting
-   - Add time signature controls with chevron navigation
-   - Implement play/stop button with state management
-   - Add message passing between WebView and React Native
-2. ✅ **Create `hooks/useAudioPermission.ts`:**
-   - Implement audio permission request using `expo-audio`
-   - Add permission status management
-   - Include error handling for permission denial
-
-## **Step 13: Update Metronome Screen**
-1. ✅ **Modify `app/(tabs)/metronome.tsx`:**
-   - Replace existing metronome logic with WebView component
-   - Integrate `useAudioPermission` hook
-   - Maintain existing UI elements (tap BPM, time signature selector, tempo slider)
-   - Add WebView container styling
-   - Implement message handling for beat changes and play state
-   - Preserve existing modal components and tap BPM functionality
-
-## **Step 14: Create WebView Show Component** 
-1. ✅ **Create `components/WebViewShow.tsx`:**
-   - Build WebView container for show mode functionality
-   - Implement count-in sequence (4 beats before show starts)
-   - Add measure-by-measure playback with tempo/time signature changes
-   - Include beat visualization and measure progress tracking
-   - Add show completion detection and callback
-   - Implement message passing for beat/measure/state changes
-
-## **Step 15: Update Show Mode Screen**
-1. ✅ **Modify `app/(tabs)/show.tsx`:**
-   - Replace existing show playback logic with WebView component
-   - Integrate `useAudioPermission` hook
-   - Maintain existing show management UI (add/edit/delete measures)
-   - Add WebView container styling
-   - Implement message handling for beat/measure changes and completion
-   - Preserve existing show persistence and import/export functionality
-
-## **Step 16: Testing and Validation** ✅
-1. ✅ **Test Audio Permissions:**
-   - Comprehensive test suite created for permission handling
-   - Device-specific test checklists for iOS/Android manual testing
-2. ✅ **Test Timing Accuracy:**
-   - Mathematical timing calculations validated (76.9% automated test success)
-   - WebView timing implementation verified as correct
-   - Edge cases and subdivision timing tested
-3. ✅ **Test Show Mode:**
-   - Count-in sequence logic validated
-   - Measure transition calculations tested
-   - Show completion and state management verified
-4. ✅ **Test UI Integration:**
-   - Theme integration and WebView props validated
-   - Responsive design tested across multiple device sizes
-   - Accessibility requirements checked (minor chevron size fix needed)
-5. ✅ **Test Infrastructure Created:**
-   - Complete test runner with 104 automated tests
-   - In-app TestingPanel component for development
-   - Comprehensive documentation and manual testing checklists
-
-## **Step 17: Performance Optimization** ✅
-1. ✅ **Optimize WebView Performance:**
-   - ✅ Created comprehensive performance monitoring system with real-time metrics (`performanceMonitor.ts`)
-   - ✅ Implemented optimized audio context manager with lazy initialization and cleanup (`audioContextManager.ts`)
-   - ✅ Built efficient message passing system with batching and throttling (16ms batching, ~60fps) (`messagePassingOptimizer.ts`)
-   - ✅ Analyzed bundle sizes: WebViewMetronome (76KB), WebViewShow (121KB) - within acceptable limits
-   - ✅ Added WebView HTML caching system to reduce initialization overhead (`WebViewCache.ts`)
-2. ✅ **Battery Life Considerations:**
-   - ✅ Implemented automatic audio context suspension after 5 minutes of inactivity
-   - ✅ Created battery optimization system with background/foreground detection (`batteryOptimizer.ts`)
-   - ✅ Added proper cleanup on component unmount with resource tracking
-   - ✅ Implemented memory leak prevention with automatic cleanup and monitoring (`memoryLeakPrevention.ts`)
-   - ✅ Added Battery API integration for power-aware optimizations
-3. ✅ **Advanced Performance Features:**
-   - ✅ Built comprehensive memory leak prevention system with resource tracking (timers, intervals, event listeners, audio nodes)
-   - ✅ Created performance benchmarking suite for timing accuracy validation (`performanceBenchmarks.ts`)
-   - ✅ Added emergency cleanup procedures for critical memory usage (>200MB threshold)
-   - ✅ Integrated all systems into cohesive performance optimization suite (`performanceIntegration.ts`)
-   - ✅ Created performance validation and testing system (`performanceValidation.ts`)
-   - ✅ Added React hooks for real-time performance monitoring (`usePerformanceStatus`)
-4. ✅ **Performance Monitoring & Metrics:**
-   - ✅ Real-time memory usage tracking with leak detection and confidence scoring
-   - ✅ Audio context initialization and latency monitoring
-   - ✅ Message passing latency measurement and optimization
-   - ✅ Automatic performance report generation with recommendations
-   - ✅ WebView-injectable performance monitoring scripts
-5. ✅ **Resource Management:**
-   - ✅ Comprehensive resource tracking and cleanup (timers, intervals, event listeners, audio nodes, WebView refs, animation frames)
-   - ✅ Automatic garbage collection triggers for high memory usage
-   - ✅ Priority-based message queuing system
-   - ✅ Inactivity-based suspension (30 seconds) with activity detection
-
-## **Step 18: Documentation and Cleanup**
-1. **Update Documentation:**
-   - Document WebView architecture in README
-   - Add comments explaining audio context usage
-   - Document message passing protocol
-2. **Remove Legacy Code:**
-   - Remove old timer.js usage from metronome components
-   - Clean up unused audio session utilities
-   - Remove react-native-sound dependencies if no longer needed
+### Battery & Resource Management
+- **Audio Context Suspension**: Automatic after 5 minutes of inactivity
+- **Background Detection**: Power-aware optimizations
+- **Memory Monitoring**: Real-time usage tracking with leak detection
+- **Resource Cleanup**: Automatic garbage collection and emergency cleanup
 
 ---
 
-**Expected Benefits:**
-- More precise audio timing using Web Audio API
-- Better audio overlap handling with AudioContext
-- Consistent cross-platform audio behavior
-- Reduced native dependency complexity
-- Improved audio latency and reliability
+## 8. Testing & Validation ✅
 
-**Potential Challenges:**
-- WebView initialization overhead
-- Audio context permission handling
-- Message passing complexity
-- Memory management for long-running shows
-- Cross-platform WebView differences
+### Test Infrastructure
+- **Automated Tests**: 104 tests covering timing accuracy, UI integration, and performance
+- **Test Runner**: Comprehensive test suite with performance benchmarks
+- **In-app Testing**: TestingPanel component for development and debugging
+- **Manual Testing**: Device-specific checklists for iOS/Android validation
+
+### Test Coverage
+- **Audio Permissions**: Permission handling and fallback scenarios
+- **Timing Accuracy**: Mathematical calculations and WebView implementation
+- **Show Mode**: Count-in logic, measure transitions, completion handling
+- **UI Integration**: Theme consistency and responsive design
+- **Performance**: Memory usage, audio latency, and resource management
+
+---
+
+## 9. Dependencies & Architecture
+
+### Core Dependencies
+- **Expo SDK**: Core framework and build tools
+- **expo-audio**: Audio permission handling
+- **react-native-live-audio-stream**: Real-time audio capture for tuner
+- **pitchfinder**: YIN algorithm for pitch detection
+- **AsyncStorage**: Local data persistence
+
+### WebView Architecture
+- **Audio Timing**: Web Audio API with AudioContext for precise timing
+- **Self-contained Logic**: All UI and functionality within WebView
+- **Theme Integration**: CSS variables for consistent theming
+- **Performance**: Optimized rendering and audio processing
+
+---
+
+# **Phase 1: Core App Development** ✅
+- Project foundation and core utilities
+- Met Mode core functionality with WebView implementation
+- Show Mode core functionality with WebView implementation
+- UI theme unification and usability improvements
+
+# **Phase 2: Real-Time Instrument Tuner** ✅
+- Research and dependency selection
+- Audio capture installation and configuration
+- Pitch detection implementation
+- Tuner screen UI and functionality
+
+# **Phase 3: UI Theme and Usability** ✅
+- Global theme unification across all tabs
+- Met Mode UI restructuring and feature additions
+
+# **Phase 4: WebView Migration** ✅
+- WebView metronome with expo-audio
+- WebView show mode implementation
+- Testing and validation
+- Performance optimization and monitoring
+
+# **Phase 5: WebView UI Improvements** ✅
+- Complete WebView metronome redesign
+- Self-contained architecture with subdivision support
+- Enhanced tap BPM and modal designs
+- Theme integration and performance optimization
 
 ---
 
 # **Potential future ideas**
 1. ✅ Subdivisions per beat
-2. Accent patterns (e.g. for 7/8: O-o-O-o-O-o-o). Add in presets but also allow the user to create their own.
+2. ✅ Accent patterns (e.g. for 7/8: O-o-O-o-O-o-o). Add in presets but also allow the user to create their own.
 3. ✅ Tap tempo: Add a button which lets the user set the tempo by tapping on the button consistently.
 4. Practice modes: the tempo gradually increases/decreases over time.
 5. ✅ Customizable sounds: offer a variety of different presets for sounds like woodblock, cowbell, electronic clicks etc.
@@ -436,298 +231,4 @@ Before you make a build, go into eas.json and make sure that build.development.s
    - Reinstalled pods with `pod install`
 
 **Result:** Bundle identifier is now properly recognized during production builds, resolving the archive error. 
-
----
-
-# **Phase 5: WebView Metronome UI Improvements (2025-01-13)**
-
-**Goal:** Transform the metronome into a fully self-contained WebView with modern UI, subdivision support, and enhanced user experience.
-
-## **Step 19: Complete WebView Metronome Redesign**
-
-### **19.1 Core Architecture Changes**
-1. **Self-contained WebView**: 
-   - Moved all UI and logic into WebView HTML/CSS/JS
-   - Eliminated React Native ↔ WebView communication issues
-   - Single source of truth for all metronome state
-
-2. **Theme Integration**:
-   - Added `themeColors` prop to pass AppTheme colors to WebView
-   - Created CSS variables for all theme colors (`--background`, `--surface`, `--primary`, `--text`, `--icon`, `--accent`, `--orange`)
-   - Replaced all hardcoded colors with theme variables
-
-### **19.2 UI/UX Improvements**
-
-#### **Touch and Interaction**
-- **Disabled zooming**: Added `maximum-scale=1.0, user-scalable=no` to viewport meta tag
-- **Prevented scrolling**: Added `overflow: hidden` and `position: fixed` to body
-- **Removed touch highlights**: Added `-webkit-tap-highlight-color: transparent`
-- **Prevented text selection**: Added `user-select: none` and related properties
-- **Removed keyboard accessory view**: Changed from `type="number"` to `type="text"` with `inputmode="numeric"` and `pattern="[0-9]*"`
-
-#### **Button Design**
-- **Larger buttons**: Increased from 60x60px to 80x80px
-- **External labels**: Moved labels outside circular buttons with proper positioning
-- **SVG icons**: Replaced emoji icons with proper SVG icons for tap BPM (checkmark) and subdivision (music note)
-- **Better typography**: Increased label font size to 12px and used darker color (`var(--icon)`)
-
-#### **Slider Improvements**
-- **Dark gray track**: Changed slider background to `#2a2a2a` for better contrast
-- **Padding**: Added `padding: 0 10px` to prevent thumb from touching edges
-- **Theme colors**: Slider thumb uses `var(--accent)` color
-
-#### **Play Button**
-- **CSS icons**: Replaced emoji with CSS-based play triangle and stop square
-- **Theme colors**: Play button uses `var(--accent)`, stop uses `var(--orange)`
-- **Explicit color management**: Added JavaScript to explicitly set colors on state changes
-
-### **19.3 Subdivision Feature**
-
-#### **Modal Design**
-- **Musical notation icons**: Used proper musical symbols (♪, ♫, ♫♪, ♫♫, etc.)
-- **Horizontal layout**: Icons on left, text on right with flexbox
-- **Theme integration**: All colors use theme variables
-- **Clean labels**: Removed "x clicks per beat" descriptions
-
-#### **Subdivision Options**
-1. **None** (♪) - Single click per beat
-2. **Eighth** (♫) - Two clicks per beat
-3. **Triplet** (♫♪) - Three clicks per beat
-4. **Sixteenth** (♫♫) - Four clicks per beat
-5. **Quintuplet** (♫♫♪) - Five clicks per beat
-6. **Sixtuplet** (♫♫♫) - Six clicks per beat
-
-#### **Audio Implementation**
-- **Beat counter**: Added `beatCount` to track subdivisions within each beat
-- **High/low notes**: First subdivision of each beat gets high note, others get low notes
-- **Interval calculation**: `calculateInterval()` now divides by subdivision count
-- **Auto-restart**: Metronome restarts when subdivision changes
-
-### **19.4 Tap BPM Enhancements**
-
-#### **Auto-disengagement**
-- **5-second timeout**: Automatically disengages after 5 seconds of inactivity
-- **Reset on tap**: Each tap resets the 5-second timer
-- **Manual stop**: Right-click to manually stop anytime
-- **Visual feedback**: Button color changes and resets properly
-
-#### **Technical Implementation**
-```javascript
-let tapBpmTimeout = null;
-
-function startTapBpm() {
-    // Set 5-second timeout
-    tapBpmTimeout = setTimeout(() => {
-        stopTapBpm();
-    }, 5000);
-}
-
-function tap() {
-    // Reset timeout on each tap
-    if (tapBpmTimeout) {
-        clearTimeout(tapBpmTimeout);
-    }
-    tapBpmTimeout = setTimeout(() => {
-        stopTapBpm();
-    }, 5000);
-}
-```
-
-### **19.5 Code Structure**
-
-#### **React Native Component**
-```typescript
-interface WebViewMetronomeProps {
-  themeColors: {
-    background: string;
-    surface: string;
-    primary: string;
-    text: string;
-    icon: string;
-    accent: string;
-    orange: string;
-  };
-}
-```
-
-#### **WebView HTML Structure**
-- **Complete UI**: All buttons, sliders, modals contained in HTML
-- **CSS variables**: Theme colors passed via CSS custom properties
-- **JavaScript logic**: All metronome functionality self-contained
-- **No external dependencies**: Pure HTML/CSS/JS implementation
-
-## **Step 20: Show Mode WebView Blueprint**
-
-### **20.1 Apply Same Architecture to Show Mode**
-
-#### **Core Changes**
-1. **Create `components/WebViewShow.tsx`**:
-   - Self-contained WebView with all show logic
-   - Theme integration with `themeColors` prop
-   - Complete UI for show management and playback
-
-2. **Update `app/(tabs)/show.tsx`**:
-   - Replace existing show logic with WebView component
-   - Pass theme colors as props
-   - Maintain show persistence and import/export functionality
-
-#### **Show Mode Specific Features**
-
-##### **Show Management UI**
-- **Show list**: Display saved shows with load/delete options
-- **Show editor**: Add/edit/delete measures with time signature and tempo
-- **Measure display**: Visual representation of show structure
-- **Import/export**: File handling for show data
-
-##### **Playback Features**
-- **Count-in**: 4-beat count-in before show starts
-- **Measure transitions**: Handle tempo and time signature changes
-- **Progress tracking**: Visual indication of current measure
-- **Completion detection**: Callback when show finishes
-
-##### **Audio Implementation**
-- **Subdivision support**: Apply same subdivision logic as metronome
-- **High/low notes**: First beat of each measure gets high note
-- **Tempo changes**: Smooth transitions between different tempos
-- **Time signature changes**: Handle different beat patterns
-
-#### **UI Components to Port**
-
-##### **Buttons and Controls**
-- **Play/stop button**: Same design as metronome with theme colors
-- **Tap BPM**: Apply same tap BPM functionality
-- **Subdivision**: Apply same subdivision modal and logic
-- **Show management buttons**: Load, save, delete, import, export
-
-##### **Modals and Dialogs**
-- **Measure editor modal**: Add/edit measure properties
-- **Show management modal**: Load/save/delete shows
-- **Import/export modal**: File selection and handling
-- **Settings modal**: Show-specific settings
-
-##### **Visual Elements**
-- **Show progress bar**: Visual indication of playback progress
-- **Measure indicators**: Highlight current measure
-- **Time signature display**: Show current time signature
-- **Tempo display**: Show current tempo with BPM
-
-#### **Technical Implementation**
-
-##### **WebView HTML Structure**
-```html
-<!-- Show Management -->
-<div class="show-list">
-  <!-- Saved shows -->
-</div>
-
-<!-- Show Editor -->
-<div class="show-editor">
-  <!-- Measure list -->
-  <!-- Add measure button -->
-</div>
-
-<!-- Playback Controls -->
-<div class="playback-controls">
-  <!-- Play button -->
-  <!-- Progress bar -->
-  <!-- Current measure display -->
-</div>
-
-<!-- Modals -->
-<div class="modal" id="measureEditorModal">
-  <!-- Measure editing form -->
-</div>
-```
-
-##### **JavaScript Logic**
-```javascript
-// Show data structure
-let currentShow = {
-  measures: [
-    { timeSignature: { numerator: 4, denominator: 4 }, tempo: 120 },
-    // ... more measures
-  ]
-};
-
-// Playback logic
-function startShow() {
-  // Count-in sequence
-  // Play through measures
-  // Handle transitions
-}
-
-// Subdivision support
-let subdivision = 1;
-let beatCount = 0;
-```
-
-##### **Theme Integration**
-```css
-:root {
-  --background: ${themeColors.background};
-  --surface: ${themeColors.surface};
-  --primary: ${themeColors.primary};
-  --text: ${themeColors.text};
-  --icon: ${themeColors.icon};
-  --accent: ${themeColors.accent};
-  --orange: ${themeColors.orange};
-}
-```
-
-### **20.2 Migration Steps**
-
-#### **Phase 1: Core WebView Setup**
-1. Create `components/WebViewShow.tsx` with basic structure
-2. Add theme integration and CSS variables
-3. Implement basic show data structure
-4. Add play/stop functionality
-
-#### **Phase 2: Show Management**
-1. Add show list display
-2. Implement show loading/saving
-3. Add measure editor modal
-4. Add import/export functionality
-
-#### **Phase 3: Playback Features**
-1. Implement count-in sequence
-2. Add measure-by-measure playback
-3. Handle tempo and time signature changes
-4. Add progress tracking
-
-#### **Phase 4: UI Polish**
-1. Apply same button designs as metronome
-2. Add subdivision support
-3. Implement tap BPM functionality
-4. Add all modals and dialogs
-
-#### **Phase 5: Integration**
-1. Update `app/(tabs)/show.tsx` to use WebView
-2. Maintain existing show persistence
-3. Test all functionality
-4. Ensure theme consistency
-
-### **20.3 Benefits of WebView Approach**
-
-#### **Technical Benefits**
-- **Consistent audio timing**: Web Audio API for precise timing
-- **No communication issues**: Self-contained logic eliminates sync problems
-- **Cross-platform consistency**: Same behavior on iOS and Android
-- **Better performance**: Reduced React Native ↔ WebView overhead
-
-#### **User Experience Benefits**
-- **Modern UI**: Professional, responsive design
-- **Theme integration**: Consistent with app theme
-- **Enhanced features**: Subdivision, tap BPM, better modals
-- **Improved accessibility**: Better touch targets and feedback
-
-#### **Development Benefits**
-- **Easier maintenance**: Single codebase for UI logic
-- **Better debugging**: WebView console for development
-- **Faster iteration**: HTML/CSS/JS changes without rebuilds
-- **Reduced complexity**: No message passing or state synchronization
-
----
-
-**Expected Timeline:** 2-3 weeks for complete show mode migration
-**Priority:** High - will significantly improve user experience and code maintainability 
 
