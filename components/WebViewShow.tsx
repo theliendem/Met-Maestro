@@ -3164,7 +3164,10 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                     if (isPlaying) {
                         // Check if this is beat 1 of a new measure (for UI updates only)
                         if (currentBeat === 0) {
-                            updateTempoBar(beatsPerMeasure, currentTempo);
+                            // Only update tempo bar if there's no pending change (otherwise it will be updated after the change)
+                            if (!window.pendingTempoChange || window.pendingTempoChange.measure !== currentMeasure) {
+                                updateTempoBar(beatsPerMeasure, currentTempo);
+                            }
                             // Update measure number at the start of the measure
                             updateMeasureNumber(currentMeasure + 1, show.measures.length);
                         }
@@ -3197,6 +3200,21 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                             const newInterval = beatDuration * (4 / denominator);
                             
                             console.log('Dynamically switching to', currentTempo, 'BPM,', beatsPerMeasure, 'beats per measure, interval:', newInterval, 'ms');
+                            
+                            // Update tempo bar with new beats per measure
+                            updateTempoBar(beatsPerMeasure, currentTempo);
+                            
+                            // Since the first beat was already played but the tempo bar just updated,
+                            // we need to manually highlight the first segment to show it's active
+                            const firstSegment = document.querySelector('[data-beat="0"]');
+                            if (firstSegment) {
+                                // Remove active class from all segments first
+                                document.querySelectorAll('.tempo-segment').forEach(segment => {
+                                    segment.classList.remove('active');
+                                });
+                                // Add active class to first segment
+                                firstSegment.classList.add('active');
+                            }
                             
                             // Clear current interval and start new one with updated tempo
                             clearInterval(metronomeInterval);
