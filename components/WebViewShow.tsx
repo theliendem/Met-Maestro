@@ -296,11 +296,10 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
             margin-bottom: 4px;
             background-color: var(--dark-gray);
             border-radius: 16px;
-            padding: 2vh 8px;
+            padding: 1vh 8px;
             box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            height: calc(36px + 4vh);
-            align-items: center;
-            gap: 4px;
+            align-items: stretch;
+            gap: 3px;
         }
         
         .tempo-bar {
@@ -313,14 +312,20 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
         .tempo-segment {
             flex: 1;
             background-color: var(--medium-gray);
-            border-radius: 8px;
+            border-radius: 6px;
             transition: all 0.1s ease;
+            height: 100%;
         }
         
         .tempo-segment.active {
             background-color: var(--accent);
 -            box-shadow: 0 0 8px rgba(187,134,252,0.4);
 +            box-shadow: 0 0 8px var(--accent-40);
+        }
+        
+        .tempo-segment.silent-beat {
+            background-color: var(--medium-gray);
+            box-shadow: 0 0 8px var(--accent-40);
         }
         
         .tempo-segment.count-off-segment {
@@ -361,7 +366,7 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
             background-color: transparent;
             border: 2px solid var(--accent);
             border-radius: 8px;
-            padding: 8px 12px;
+            padding: 4px 10px;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
@@ -373,7 +378,7 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
+            gap: 0;
         }
         
         .measure-number {
@@ -824,6 +829,81 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
             color: var(--text);
         }
         
+        /* Beat Sound Configuration Styles */
+        .beat-sound-description {
+            color: var(--text);
+            font-size: 14px;
+            margin-bottom: 20px;
+            text-align: center;
+            opacity: 0.8;
+        }
+        
+        .beat-sound-grid {
+            display: grid;
+            gap: 8px;
+            margin: 20px 0;
+            justify-content: center;
+            overflow-x: auto;
+        }
+        
+        .beat-sound-row {
+            display: grid;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .beat-sound-label {
+            color: var(--text);
+            font-weight: 600;
+            font-size: 14px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+        
+        .beat-sound-cell-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .beat-sound-cell {
+            width: 100%;
+            aspect-ratio: 1;
+            min-width: 24px;
+            max-width: 48px;
+            border: 2px solid var(--light-gray);
+            border-radius: 4px;
+            background: var(--surface);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .beat-sound-cell:hover {
+            border-color: var(--accent);
+            background: rgba(var(--accent-rgb), 0.1);
+        }
+        
+        .beat-sound-cell.selected {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        
+        .beat-number {
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+        }
+        
         /* Snackbar removed */
         
         /* Settings Button */
@@ -1090,10 +1170,30 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                     <option value="Z">Z</option>
                 </select>
             </div>
+            <div class="input-group">
+                <button class="modal-btn outline" id="beatSoundConfigBtn" style="width: 100%; margin-bottom: 16px;">Configure Beat Sounds</button>
+            </div>
             <div class="modal-buttons">
                 <button class="modal-btn cancel" id="editMeasuresCancelBtn">Cancel</button>
                 <button class="modal-btn delete" id="deleteMeasuresBtn">Delete</button>
                 <button class="modal-btn save" id="editMeasuresSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Beat Sound Configuration Modal -->
+    <div class="modal" id="beatSoundModal">
+        <div class="modal-content" style="max-width: 95vw; width: fit-content; min-width: 350px;">
+            <div class="modal-title">Configure Beat Sounds</div>
+            <div class="beat-sound-description">
+                Select which beats should play high or low sounds. Each column represents a beat in the measure.
+            </div>
+            <div class="beat-sound-grid" id="beatSoundGrid">
+                <!-- Grid will be populated dynamically -->
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="beatSoundCancelBtn">Cancel</button>
+                <button class="modal-btn save" id="beatSoundSaveBtn">Save</button>
             </div>
         </div>
     </div>
@@ -1154,10 +1254,45 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
         
         // Function to update shows data from React Native
         function updateShowsData(newShows, newSelectedShow) {
-            console.log('Updating shows data:', newShows, newSelectedShow);
+            console.log('WebView: updateShowsData called, condensedView before:', condensedView, 'skipNextRender:', window.skipNextRender);
+            
+            // If this is a result of a local update, just update the data without re-rendering
+            if (window.skipNextRender) {
+                console.log('WebView: Skipping render due to skipNextRender flag');
+                shows = newShows;
+                selectedShow = newSelectedShow;
+                window.skipNextRender = false;
+                return;
+            }
+            
+            // Preserve the current condensedView state
+            const wasCondensed = condensedView;
+            
             shows = newShows;
             selectedShow = newSelectedShow;
             renderShows();
+            
+            // Restore condensedView state and update toggle UI
+            condensedView = wasCondensed;
+            console.log('WebView: condensedView restored to:', condensedView);
+            
+            const toggle = document.getElementById('condensedToggle');
+            if (toggle) {
+                if (condensedView) {
+                    toggle.classList.add('active');
+                } else {
+                    toggle.classList.remove('active');
+                }
+                console.log('WebView: toggle UI updated, active classes:', toggle.classList.contains('active'));
+            }
+            
+            // Render measures for the initially selected show
+            if (selectedShow) {
+                const selectedShowData = shows.find(s => s.id === selectedShow);
+                if (selectedShowData) {
+                    renderMeasures(selectedShowData);
+                }
+            }
         }
         
         // Function to update sound type from React Native
@@ -1320,14 +1455,6 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                 showScroll.appendChild(showChip);
             });
             
-            // Render measures for the initially selected show
-            if (selectedShow) {
-                const selectedShowData = shows.find(s => s.id === selectedShow);
-                if (selectedShowData) {
-                    renderMeasures(selectedShowData);
-                }
-            }
-            
             // Update measure display for initially selected show
             updateMeasureDisplay();
             
@@ -1378,6 +1505,7 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
         
         // Function to render measures for a show
         function renderMeasures(show) {
+            console.log('Rendering measures with condensedView:', condensedView);
             const measureList = document.getElementById('measureList');
             // Store current scroll position
             const scrollTop = measureList.scrollTop;
@@ -1390,21 +1518,28 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
             let toRender;
             if (condensedView) {
                 // Group consecutive measures with the same time signature, tempo, and letter
+                console.log('Grouping measures in condensed view...');
                 const clumped = [];
                 for (let i = 0; i < show.measures.length; i++) {
                     const m = show.measures[i];
+                    const lastClumped = clumped.length > 0 ? clumped[clumped.length - 1] : null;
+                    
                     if (
-                        clumped.length > 0 &&
-                        clumped[clumped.length - 1].timeSignature.numerator === m.timeSignature.numerator &&
-                        clumped[clumped.length - 1].timeSignature.denominator === m.timeSignature.denominator &&
-                        clumped[clumped.length - 1].tempo === m.tempo &&
-                        clumped[clumped.length - 1].letter === m.letter
+                        lastClumped &&
+                        lastClumped.timeSignature.numerator === m.timeSignature.numerator &&
+                        lastClumped.timeSignature.denominator === m.timeSignature.denominator &&
+                        lastClumped.tempo === m.tempo &&
+                        lastClumped.letter === m.letter &&
+                        compareBeatSounds(lastClumped.beatSounds, m.beatSounds)
                     ) {
+                        console.log('Grouping measure', i+1, 'with previous group');
                         clumped[clumped.length - 1].count += 1;
                     } else {
+                        console.log('Starting new group for measure', i+1);
                         clumped.push({ ...m, count: 1 });
                     }
                 }
+                console.log('Condensed groups:', clumped.length, 'from', show.measures.length, 'measures');
                 toRender = clumped;
             } else {
                 // Show each measure individually (no grouping)
@@ -1445,7 +1580,28 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
             // Restore scroll position
             measureList.scrollTop = scrollTop;
         }
+        // Initialize condensedView from localStorage if available, otherwise default to true
         let condensedView = true;
+        try {
+            const savedCondensedView = localStorage.getItem('condensedView');
+            if (savedCondensedView !== null) {
+                condensedView = JSON.parse(savedCondensedView);
+            }
+        } catch (e) {
+            console.log('Could not load condensedView from localStorage:', e);
+        }
+        
+        // Set initial toggle state based on loaded condensedView
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggle = document.getElementById('condensedToggle');
+            if (toggle) {
+                if (condensedView) {
+                    toggle.classList.add('active');
+                } else {
+                    toggle.classList.remove('active');
+                }
+            }
+        });
         
         // Show modal
         function showModal(modalId) {
@@ -1457,6 +1613,104 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
         function hideModal(modalId) {
             console.log('Hiding modal:', modalId);
             document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // Build beat sound configuration grid
+        function buildBeatSoundGrid(numerator, existingBeatSounds) {
+            const grid = document.getElementById('beatSoundGrid');
+            
+            // Set up default pattern if no existing beat sounds: high on beat 1, low on all others
+            let beatSounds = existingBeatSounds;
+            if (!beatSounds) {
+                beatSounds = {
+                    high: [0], // Beat 1 (index 0)
+                    low: []
+                };
+                // Add all other beats to low sounds
+                for (let i = 1; i < numerator; i++) {
+                    beatSounds.low.push(i);
+                }
+            }
+            
+            // Set up grid layout: 1 column for labels + flexible columns for beats
+            // Calculate available space: 95vw - label width - modal padding - gaps
+            const viewportWidth = window.innerWidth;
+            const maxModalWidth = viewportWidth * 0.95;
+            const labelWidth = 32; // Even smaller label width for text-only labels
+            const modalPadding = 48; // Padding, margins, gaps, etc.
+            const gridGaps = (numerator - 1) * 8; // 8px gap between cells
+            const availableWidth = maxModalWidth - labelWidth - modalPadding - gridGaps;
+            const idealCellSize = availableWidth / numerator;
+            const cellSize = Math.min(48, Math.max(24, idealCellSize));
+            
+            grid.style.gridTemplateColumns = \`32px repeat(\${numerator}, \${cellSize}px)\`;
+            
+            let html = '';
+            
+            // High sound row
+            html += '<div class="beat-sound-row" style="grid-column: 1 / -1; display: grid; gap: 8px; grid-template-columns: subgrid;">';
+            html += '<div class="beat-sound-label">Hi</div>';
+            for (let beat = 1; beat <= numerator; beat++) {
+                const isSelected = beatSounds.high.includes(beat - 1);
+                html += \`<div class="beat-sound-cell-container">
+                            <div class="beat-number">\${beat}</div>
+                            <div class="beat-sound-cell \${isSelected ? 'selected' : ''}" data-sound="high" data-beat="\${beat - 1}"></div>
+                         </div>\`;
+            }
+            html += '</div>';
+            
+            // Low sound row
+            html += '<div class="beat-sound-row" style="grid-column: 1 / -1; display: grid; gap: 8px; grid-template-columns: subgrid;">';
+            html += '<div class="beat-sound-label">Lo</div>';
+            for (let beat = 1; beat <= numerator; beat++) {
+                const isSelected = beatSounds.low.includes(beat - 1);
+                html += \`<div class="beat-sound-cell \${isSelected ? 'selected' : ''}" data-sound="low" data-beat="\${beat - 1}"></div>\`;
+            }
+            html += '</div>';
+            
+            grid.innerHTML = html;
+            
+            // Add click handlers for cells
+            grid.querySelectorAll('.beat-sound-cell').forEach(cell => {
+                cell.addEventListener('click', () => {
+                    const beatIndex = cell.getAttribute('data-beat');
+                    const soundType = cell.getAttribute('data-sound');
+                    
+                    // If clicking on an already selected cell, deselect it
+                    if (cell.classList.contains('selected')) {
+                        cell.classList.remove('selected');
+                    } else {
+                        // First, deselect any other selected cells in the same column (same beat)
+                        grid.querySelectorAll(\`[data-beat="\${beatIndex}"].selected\`).forEach(otherCell => {
+                            otherCell.classList.remove('selected');
+                        });
+                        
+                        // Then select this cell
+                        cell.classList.add('selected');
+                    }
+                });
+            });
+        }
+        
+        // Collect beat sounds from grid
+        function collectBeatSounds() {
+            const grid = document.getElementById('beatSoundGrid');
+            const beatSounds = {
+                high: [],
+                low: []
+            };
+            
+            grid.querySelectorAll('.beat-sound-cell.selected').forEach(cell => {
+                const sound = cell.getAttribute('data-sound');
+                const beat = parseInt(cell.getAttribute('data-beat'), 10);
+                beatSounds[sound].push(beat);
+            });
+            
+            // Sort the arrays
+            beatSounds.high.sort((a, b) => a - b);
+            beatSounds.low.sort((a, b) => a - b);
+            
+            return beatSounds;
         }
         
         // Snackbar removed
@@ -1528,7 +1782,8 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                                 if (currentMeasure.timeSignature.numerator === measure.timeSignature.numerator &&
                                     currentMeasure.timeSignature.denominator === measure.timeSignature.denominator &&
                                     currentMeasure.tempo === measure.tempo &&
-                                    currentMeasure.letter === measure.letter) {
+                                    currentMeasure.letter === measure.letter &&
+                                    compareBeatSounds(currentMeasure.beatSounds, measure.beatSounds)) {
                                     count++;
                                 } else {
                                     break;
@@ -1570,7 +1825,8 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                                 if (show.measures[i].timeSignature.numerator === currentMeasure.timeSignature.numerator &&
                                     show.measures[i].timeSignature.denominator === currentMeasure.timeSignature.denominator &&
                                     show.measures[i].tempo === currentMeasure.tempo &&
-                                    show.measures[i].letter === currentMeasure.letter) {
+                                    show.measures[i].letter === currentMeasure.letter &&
+                                    compareBeatSounds(show.measures[i].beatSounds, currentMeasure.beatSounds)) {
                                     groupEnd = i;
                                 } else {
                                     break;
@@ -1584,7 +1840,8 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                                 if (show.measures[i].timeSignature.numerator === prevMeasure.timeSignature.numerator &&
                                     show.measures[i].timeSignature.denominator === prevMeasure.timeSignature.denominator &&
                                     show.measures[i].tempo === prevMeasure.tempo &&
-                                    show.measures[i].letter === prevMeasure.letter) {
+                                    show.measures[i].letter === prevMeasure.letter &&
+                                    compareBeatSounds(show.measures[i].beatSounds, prevMeasure.beatSounds)) {
                                     prevGroupEnd = i;
                                 } else {
                                     break;
@@ -1650,7 +1907,9 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                             for (let i = measureIndex + 1; i < show.measures.length; i++) {
                                 if (show.measures[i].timeSignature.numerator === currentMeasure.timeSignature.numerator &&
                                     show.measures[i].timeSignature.denominator === currentMeasure.timeSignature.denominator &&
-                                    show.measures[i].tempo === currentMeasure.tempo) {
+                                    show.measures[i].tempo === currentMeasure.tempo &&
+                                    show.measures[i].letter === currentMeasure.letter &&
+                                    compareBeatSounds(show.measures[i].beatSounds, currentMeasure.beatSounds)) {
                                     groupEnd = i;
                                 } else {
                                     break;
@@ -1664,7 +1923,9 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                                 for (let i = nextGroupEnd + 1; i < show.measures.length; i++) {
                                     if (show.measures[i].timeSignature.numerator === nextMeasure.timeSignature.numerator &&
                                         show.measures[i].timeSignature.denominator === nextMeasure.timeSignature.denominator &&
-                                        show.measures[i].tempo === nextMeasure.tempo) {
+                                        show.measures[i].tempo === nextMeasure.tempo &&
+                                        show.measures[i].letter === nextMeasure.letter &&
+                                        compareBeatSounds(show.measures[i].beatSounds, nextMeasure.beatSounds)) {
                                         nextGroupEnd = i;
                                     } else {
                                         break;
@@ -1883,6 +2144,9 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
             const denominator = parseInt(document.getElementById('editDenominatorInput').value, 10);
             const letter = document.getElementById('editLetterInput').value;
             
+            // Get beat sounds configuration if it was set
+            const beatSounds = window.editingBeatSounds || null;
+            
             // Validate inputs
             if (
                 isNaN(numMeasures) || numMeasures < 1 || numMeasures > 500 ||
@@ -1914,12 +2178,14 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                     if (currentMeasure.timeSignature.numerator === originalMeasure.timeSignature.numerator &&
                         currentMeasure.timeSignature.denominator === originalMeasure.timeSignature.denominator &&
                         currentMeasure.tempo === originalMeasure.tempo &&
-                        currentMeasure.letter === originalMeasure.letter) {
+                        currentMeasure.letter === originalMeasure.letter &&
+                        compareBeatSounds(currentMeasure.beatSounds, originalMeasure.beatSounds)) {
                         updatedMeasures[i] = {
                             ...currentMeasure,
                             timeSignature: { numerator, denominator },
                             tempo,
-                            letter: letter || undefined
+                            letter: letter || undefined,
+                            beatSounds: beatSounds || currentMeasure.beatSounds
                         };
                         count++;
                         if (count >= numMeasures) break;
@@ -1933,9 +2199,13 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                     ...originalMeasure,
                     timeSignature: { numerator, denominator },
                     tempo,
-                    letter: letter || undefined
+                    letter: letter || undefined,
+                    beatSounds: beatSounds || originalMeasure.beatSounds
                 };
             }
+            
+            // Set a flag to prevent re-rendering when React Native updates the data
+            window.skipNextRender = true;
             
             // Send message to React Native to update show measures
             window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -1943,6 +2213,9 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                 showId: show.id,
                 measures: updatedMeasures
             }));
+            
+            // Clean up beat sounds configuration
+            window.editingBeatSounds = null;
             
             hideModal('editMeasuresModal');
             // Snackbar removed
@@ -1965,39 +2238,56 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
             
             const measureToDelete = show.measures[measureIndex];
             
-            // Find all measures in the same group (consecutive measures with same time signature and tempo)
+            // Decide deletion strategy based on condensed/uncondensed view
+            console.log('Deleting measure in condensedView:', condensedView);
             let startIndex = measureIndex;
             let endIndex = measureIndex;
-            
-            // Look backwards to find the start of the group
-            for (let i = measureIndex - 1; i >= 0; i--) {
-                const currentMeasure = show.measures[i];
-                if (currentMeasure.timeSignature.numerator === measureToDelete.timeSignature.numerator &&
-                    currentMeasure.timeSignature.denominator === measureToDelete.timeSignature.denominator &&
-                    currentMeasure.tempo === measureToDelete.tempo) {
-                    startIndex = i;
-                } else {
-                    break;
+
+            if (condensedView) {
+                // In condensed view, delete the whole group (existing logic)
+                // Look backwards to find the start of the group
+                for (let i = measureIndex - 1; i >= 0; i--) {
+                    const currentMeasure = show.measures[i];
+                    if (currentMeasure.timeSignature.numerator === measureToDelete.timeSignature.numerator &&
+                        currentMeasure.timeSignature.denominator === measureToDelete.timeSignature.denominator &&
+                        currentMeasure.tempo === measureToDelete.tempo &&
+                        currentMeasure.letter === measureToDelete.letter &&
+                        compareBeatSounds(currentMeasure.beatSounds, measureToDelete.beatSounds)) {
+                        startIndex = i;
+                    } else {
+                        break;
+                    }
+                }
+
+                // Look forwards to find the end of the group
+                for (let i = measureIndex + 1; i < show.measures.length; i++) {
+                    const currentMeasure = show.measures[i];
+                    if (currentMeasure.timeSignature.numerator === measureToDelete.timeSignature.numerator &&
+                        currentMeasure.timeSignature.denominator === measureToDelete.timeSignature.denominator &&
+                        currentMeasure.tempo === measureToDelete.tempo &&
+                        currentMeasure.letter === measureToDelete.letter &&
+                        compareBeatSounds(currentMeasure.beatSounds, measureToDelete.beatSounds)) {
+                        endIndex = i;
+                    } else {
+                        break;
+                    }
                 }
             }
-            
-            // Look forwards to find the end of the group
-            for (let i = measureIndex + 1; i < show.measures.length; i++) {
-                const currentMeasure = show.measures[i];
-                if (currentMeasure.timeSignature.numerator === measureToDelete.timeSignature.numerator &&
-                    currentMeasure.timeSignature.denominator === measureToDelete.timeSignature.denominator &&
-                    currentMeasure.tempo === measureToDelete.tempo) {
-                    endIndex = i;
-                } else {
-                    break;
-                }
-            }
-            
-            // Remove all measures in the group
+
+            // Build the new measures array (single deletion in uncondensed, group deletion in condensed)
             const updatedMeasures = [
                 ...show.measures.slice(0, startIndex),
                 ...show.measures.slice(endIndex + 1)
             ];
+
+            // Update the local show object so that the UI can be refreshed immediately
+            show.measures = updatedMeasures;
+            
+            // Re-render measures to reflect deletion without changing condensedView state
+            renderMeasures(show);
+            
+            // Set a flag to prevent re-rendering when React Native updates the data
+            window.skipNextRender = true;
             
             // Send message to React Native to update show measures
             window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -2005,8 +2295,39 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                 showId: show.id,
                 measures: updatedMeasures
             }));
-            
+
             hideModal('editMeasuresModal');
+            // Snackbar removed
+        });
+        
+        // Beat sound configuration event listeners
+        document.getElementById('beatSoundConfigBtn').addEventListener('click', () => {
+            const numerator = parseInt(document.getElementById('editNumeratorInput').value, 10);
+            if (isNaN(numerator) || numerator < 1 || numerator > 32) {
+                // Snackbar removed - invalid time signature
+                return;
+            }
+            
+            // Get current measure to load existing beat sounds
+            const show = shows.find(s => s.id === selectedShow);
+            const measure = show?.measures.find(m => m.id === window.editingMeasureId);
+            
+            buildBeatSoundGrid(numerator, measure?.beatSounds);
+            showModal('beatSoundModal');
+        });
+        
+        document.getElementById('beatSoundCancelBtn').addEventListener('click', () => {
+            hideModal('beatSoundModal');
+        });
+        
+        document.getElementById('beatSoundSaveBtn').addEventListener('click', () => {
+            // Collect selected beat sounds from the grid
+            const beatSounds = collectBeatSounds();
+            
+            // Store the beat sounds configuration for when the measure is saved
+            window.editingBeatSounds = beatSounds;
+            
+            hideModal('beatSoundModal');
             // Snackbar removed
         });
         
@@ -2014,7 +2335,16 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
         document.getElementById('condensedToggle').addEventListener('click', function() {
             this.classList.toggle('active');
             condensedView = this.classList.contains('active');
-            // Snackbar removed
+            
+            // Save condensedView state to localStorage
+            try {
+                localStorage.setItem('condensedView', JSON.stringify(condensedView));
+            } catch (e) {
+                console.log('Could not save condensedView to localStorage:', e);
+            }
+            
+            console.log('Condensed view toggled to:', condensedView);
+            
             // Re-render measures in the new mode
             const show = shows.find(s => s.id === selectedShow);
             if (show) {
@@ -2073,11 +2403,68 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
             }
         }
         
+        // Helper function to compare beatSounds configurations
+        function compareBeatSounds(beatSounds1, beatSounds2) {
+            // If both are null/undefined, they're equal
+            if (!beatSounds1 && !beatSounds2) {
+                console.log('Both beatSounds are null/undefined - equal');
+                return true;
+            }
+            
+            // If only one is null/undefined, they're not equal
+            if (!beatSounds1 || !beatSounds2) {
+                console.log('One beatSounds is null/undefined - not equal');
+                return false;
+            }
+            
+            // Compare high arrays
+            const high1 = beatSounds1.high || [];
+            const high2 = beatSounds2.high || [];
+            if (high1.length !== high2.length) {
+                console.log('High arrays different lengths:', high1.length, 'vs', high2.length);
+                return false;
+            }
+            if (!high1.every(beat => high2.includes(beat))) {
+                console.log('High arrays different content:', high1, 'vs', high2);
+                return false;
+            }
+            
+            // Compare low arrays
+            const low1 = beatSounds1.low || [];
+            const low2 = beatSounds2.low || [];
+            if (low1.length !== low2.length) {
+                console.log('Low arrays different lengths:', low1.length, 'vs', low2.length);
+                return false;
+            }
+            if (!low1.every(beat => low2.includes(beat))) {
+                console.log('Low arrays different content:', low1, 'vs', low2);
+                return false;
+            }
+            
+            console.log('BeatSounds are equal');
+            return true;
+        }
+
         // Play a click sound using Web Audio API
-        function playClick(isDownbeat = false) {
+        function playClick(isDownbeat = false, beatIndex = 0, measureData = null) {
             if (!audioContext) {
                 console.error('No audio context available');
                 return;
+            }
+            
+            // Check if this beat should play a custom sound based on beat sounds configuration
+            let shouldPlayHighSound = isDownbeat;
+            let shouldPlayLowSound = !isDownbeat;
+            
+            if (measureData && measureData.beatSounds) {
+                const beatSounds = measureData.beatSounds;
+                shouldPlayHighSound = beatSounds.high && beatSounds.high.includes(beatIndex);
+                shouldPlayLowSound = beatSounds.low && beatSounds.low.includes(beatIndex);
+                
+                // If neither high nor low is configured for this beat, don't play any sound
+                if (!shouldPlayHighSound && !shouldPlayLowSound) {
+                    return;
+                }
             }
             
             const startTime = audioContext.currentTime;
@@ -2085,8 +2472,8 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
             
             // Different sound types
             if (currentSound === 'synth') {
-                if (isDownbeat) {
-                    // Downbeat: higher frequency with more harmonics
+                if (shouldPlayHighSound) {
+                    // High sound: higher frequency with more harmonics
                     const oscillator1 = audioContext.createOscillator();
                     const oscillator2 = audioContext.createOscillator();
                     const gainNode = audioContext.createGain();
@@ -2105,8 +2492,8 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                     oscillator2.start(startTime);
                     oscillator1.stop(startTime + duration);
                     oscillator2.stop(startTime + duration);
-                } else {
-                    // Offbeat: simpler sound
+                } else if (shouldPlayLowSound) {
+                    // Low sound: simpler sound
                     const oscillator = audioContext.createOscillator();
                     const gainNode = audioContext.createGain();
                     
@@ -2137,8 +2524,8 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                 const filterNode = audioContext.createBiquadFilter();
                 const filterEnv = audioContext.createGain();
                 
-                // Fundamental pitch - higher for accent
-                const baseFreq = isDownbeat ? 1200 : 800;
+                // Fundamental pitch - higher for high sound
+                const baseFreq = shouldPlayHighSound ? 1200 : 800;
                 
                 // Primary oscillator - square wave for rich harmonics
                 oscillator1.frequency.setValueAtTime(baseFreq, startTime);
@@ -2158,11 +2545,11 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                 filterEnv.gain.exponentialRampToValueAtTime(0.1, startTime + duration);
                 
                 // Gain envelope
-                gainNode.gain.setValueAtTime(isDownbeat ? 0.4 : 0.25, startTime);
+                gainNode.gain.setValueAtTime(shouldPlayHighSound ? 0.4 : 0.25, startTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
                 
                 // Noise envelope
-                noiseGain.gain.setValueAtTime(isDownbeat ? 0.3 : 0.15, startTime);
+                noiseGain.gain.setValueAtTime(shouldPlayHighSound ? 0.3 : 0.15, startTime);
                 noiseGain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
                 
                 // Connect oscillators
@@ -2318,8 +2705,8 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                 const gainNode = audioContext.createGain();
                 const filterNode = audioContext.createBiquadFilter();
                 
-                // Fundamental pitch - higher for accent
-                const baseFreq = isDownbeat ? 900 : 600;
+                // Fundamental pitch - higher for high sound
+                const baseFreq = shouldPlayHighSound ? 900 : 600;
                 
                 // Multiple oscillators for clean sound
                 oscillator1.frequency.setValueAtTime(baseFreq, startTime);
@@ -2332,7 +2719,7 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                 filterNode.Q.setValueAtTime(1, startTime);
                 
                 // Gain envelope
-                gainNode.gain.setValueAtTime(isDownbeat ? 0.35 : 0.2, startTime);
+                gainNode.gain.setValueAtTime(shouldPlayHighSound ? 0.35 : 0.2, startTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
                 
                 // Connect oscillators
@@ -2357,8 +2744,8 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                     
                     source.buffer = drbeatBuffer;
                     
-                    // Adjust volume based on downbeat
-                    gainNode.gain.setValueAtTime(isDownbeat ? 1.0 : 0.8, startTime);
+                    // Adjust volume based on high/low sound
+                    gainNode.gain.setValueAtTime(shouldPlayHighSound ? 1.0 : 0.8, startTime);
                     
                     source.connect(gainNode);
                     gainNode.connect(audioContext.destination);
@@ -2370,8 +2757,8 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                     const oscillator = audioContext.createOscillator();
                     const gainNode = audioContext.createGain();
                     
-                    oscillator.frequency.setValueAtTime(isDownbeat ? 800 : 600, startTime);
-                    gainNode.gain.setValueAtTime(isDownbeat ? 0.3 : 0.2, startTime);
+                    oscillator.frequency.setValueAtTime(shouldPlayHighSound ? 800 : 600, startTime);
+                    gainNode.gain.setValueAtTime(shouldPlayHighSound ? 0.3 : 0.2, startTime);
                     gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
                     
                     oscillator.connect(gainNode);
@@ -2472,16 +2859,32 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
         }
         
         // Function to highlight current beat
-        function highlightBeat(beatIndex) {
-            // Remove active class from all segments
+        function highlightBeat(beatIndex, measureData = null) {
+            // Remove active and silent-beat classes from all segments
             document.querySelectorAll('.tempo-segment').forEach(segment => {
-                segment.classList.remove('active');
+                segment.classList.remove('active', 'silent-beat');
             });
             
-            // Add active class to current beat segment
+            // Add appropriate class to current beat segment
             const currentSegment = document.querySelector('[data-beat="' + beatIndex + '"]');
             if (currentSegment) {
-                currentSegment.classList.add('active');
+                // Check if this beat should play a sound based on beat sounds configuration
+                let shouldPlaySound = true; // Default to true for normal behavior
+                
+                if (measureData && measureData.beatSounds) {
+                    const beatSounds = measureData.beatSounds;
+                    const shouldPlayHighSound = beatSounds.high && beatSounds.high.includes(beatIndex);
+                    const shouldPlayLowSound = beatSounds.low && beatSounds.low.includes(beatIndex);
+                    
+                    // If neither high nor low is configured for this beat, it's a silent beat
+                    shouldPlaySound = shouldPlayHighSound || shouldPlayLowSound;
+                }
+                
+                if (shouldPlaySound) {
+                    currentSegment.classList.add('active');
+                } else {
+                    currentSegment.classList.add('silent-beat');
+                }
             }
         }
         
@@ -2582,7 +2985,7 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
             playCountOffNote();
             // Clear all highlights and highlight first beat
             document.querySelectorAll('.tempo-segment').forEach(segment => {
-                segment.classList.remove('active');
+                segment.classList.remove('active', 'silent-beat');
             });
             const firstSegment = document.querySelector('[data-beat="0"]');
             if (firstSegment) {
@@ -2599,7 +3002,7 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                     playCountOffNote();
                     // Clear all highlights first
                     document.querySelectorAll('.tempo-segment').forEach(segment => {
-                        segment.classList.remove('active');
+                        segment.classList.remove('active', 'silent-beat');
                     });
                     
                     // Highlight only the current beat
@@ -2653,7 +3056,7 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
         function highlightBeatForCountOff(beatIndex) {
             // Remove active class from all segments
             document.querySelectorAll('.tempo-segment').forEach(segment => {
-                segment.classList.remove('active');
+                segment.classList.remove('active', 'silent-beat');
             });
             
             // Add active class to current beat segment
@@ -2728,8 +3131,9 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
             updateMeasureNumber(currentMeasure + 1, show.measures.length);
             
             // Play first beat immediately (downbeat)
-            playClick(true);
-            highlightBeat(0); // Highlight first beat
+            const firstMeasureData = show.measures[currentMeasure];
+            playClick(true, 0, firstMeasureData);
+            highlightBeat(0, firstMeasureData); // Highlight first beat
             currentBeat++;
             
             // Function to start metronome with current measure's tempo
@@ -2758,20 +3162,50 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                 // Set up interval for continuous playback
                 metronomeInterval = setInterval(() => {
                     if (isPlaying) {
-                        // Check if this is beat 1 of a new measure
+                        // Check if this is beat 1 of a new measure (for UI updates only)
                         if (currentBeat === 0) {
                             updateTempoBar(beatsPerMeasure, currentTempo);
                             // Update measure number at the start of the measure
                             updateMeasureNumber(currentMeasure + 1, show.measures.length);
                         }
 
-                        // Play click & highlight current beat
+                        // Play click & highlight current beat with current tempo
                         const isDownbeat = currentBeat === 0;
-                        playClick(isDownbeat);
-                        highlightBeat(currentBeat); // Highlight current beat
+                        const currentMeasureData = show.measures[currentMeasure];
+                        playClick(isDownbeat, currentBeat, currentMeasureData);
+                        highlightBeat(currentBeat, currentMeasureData); // Highlight current beat
                         
                         // Increment beat counter
                         currentBeat++;
+                        
+                        // Check if there's a pending tempo/time signature change that should take effect AFTER this beat
+                        if (window.pendingTempoChange && window.pendingTempoChange.measure === currentMeasure && currentBeat === 1) {
+                            console.log('Applying pending tempo/time signature change AFTER first beat of measure', currentMeasure + 1);
+                            console.log('Changing from', beatsPerMeasure, 'beats to', window.pendingTempoChange.beatsPerMeasure, 'beats');
+                            
+                            // Update to new tempo and time signature
+                            currentTempo = window.pendingTempoChange.tempo;
+                            beatsPerMeasure = window.pendingTempoChange.beatsPerMeasure;
+                            const newTimeSignature = window.pendingTempoChange.timeSignature;
+                            
+                            // Clear the pending change
+                            window.pendingTempoChange = null;
+                            
+                            // Calculate new interval for the new tempo/time signature
+                            const denominator = newTimeSignature.denominator;
+                            const beatDuration = 60000 / currentTempo;
+                            const newInterval = beatDuration * (4 / denominator);
+                            
+                            console.log('Dynamically switching to', currentTempo, 'BPM,', beatsPerMeasure, 'beats per measure, interval:', newInterval, 'ms');
+                            
+                            // Clear current interval and start new one with updated tempo
+                            clearInterval(metronomeInterval);
+                            interval = newInterval;
+                            
+                            // Start the metronome again with the new interval but continue from current position
+                            startMetronomeWithTempo();
+                            return;
+                        }
                         
                         // Check if we've completed a measure (after incrementing)
                         if (currentBeat >= beatsPerMeasure) {
@@ -2790,34 +3224,40 @@ const WebViewShow = forwardRef<WebViewShowRef, WebViewShowProps>(({
                                 return;
                             }
                             
-                            // Update beats per measure and tempo for next measure
+                            // Prepare for next measure - but don't change tempo/interval yet
                             const nextMeasure = show.measures[currentMeasure];
                             const previousTempo = currentTempo;
-                            beatsPerMeasure = nextMeasure.timeSignature.numerator;
-                            console.log('Updated to', beatsPerMeasure, 'beats per measure at', nextMeasure.tempo, 'BPM, time signature', nextMeasure.timeSignature.numerator + '/' + nextMeasure.timeSignature.denominator, 'for measure', currentMeasure + 1);
                             
-                            // Send message to React Native about measure completion
-                            window.ReactNativeWebView.postMessage(JSON.stringify({
-                                type: 'MEASURE_COMPLETED',
-                                measure: currentMeasure,
-                                beatsPerMeasure: beatsPerMeasure,
-                                tempo: nextMeasure.tempo
-                            }));
-                            
-                            // Check if tempo is changing - only add delay for tempo changes
-                            if (nextMeasure.tempo !== previousTempo) {
-                                console.log('Tempo change detected - adding small delay');
-                                // Add a small delay to let the last beat breathe a bit before tempo change
-                                setTimeout(() => {
-                                    if (isPlaying) {
-                                        startMetronomeWithTempo();
-                                    }
-                                }, 75); // Small 75ms delay to make last beat feel slightly longer
+                            // Check if tempo or time signature is changing
+                            if (nextMeasure.tempo !== previousTempo || nextMeasure.timeSignature.numerator !== beatsPerMeasure) {
+                                console.log('Tempo/time signature change detected - will update on next beat');
+                                // Mark that we need to restart the metronome with new settings
+                                window.pendingTempoChange = {
+                                    measure: currentMeasure,
+                                    tempo: nextMeasure.tempo,
+                                    beatsPerMeasure: nextMeasure.timeSignature.numerator,
+                                    timeSignature: nextMeasure.timeSignature
+                                };
+                                
+                                // Send message to React Native about measure completion
+                                window.ReactNativeWebView.postMessage(JSON.stringify({
+                                    type: 'MEASURE_COMPLETED',
+                                    measure: currentMeasure,
+                                    beatsPerMeasure: nextMeasure.timeSignature.numerator,
+                                    tempo: nextMeasure.tempo
+                                }));
                             } else {
-                                // No tempo change - start immediately
-                                startMetronomeWithTempo();
+                                // No tempo/time signature change - just update the measure counter
+                                beatsPerMeasure = nextMeasure.timeSignature.numerator;
+                                
+                                // Send message to React Native about measure completion
+                                window.ReactNativeWebView.postMessage(JSON.stringify({
+                                    type: 'MEASURE_COMPLETED',
+                                    measure: currentMeasure,
+                                    beatsPerMeasure: beatsPerMeasure,
+                                    tempo: nextMeasure.tempo
+                                }));
                             }
-                            return;
                         }
                     } else {
                         // Stop if playing state changed
