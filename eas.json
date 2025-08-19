@@ -25,12 +25,18 @@
       }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildType": "app-bundle"
+      }
     },
     "production": {
       "autoIncrement": true,
       "ios": {
         "buildConfiguration": "Release"
+      },
+      "android": {
+        "buildType": "app-bundle"
       }
     }
   },

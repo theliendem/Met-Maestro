@@ -1297,24 +1297,11 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
                 oscillator2.stop(startTime + 0.1);
                 oscillator3.stop(startTime + 0.1);
             } else if (currentSound === 'drbeat') {
-                // Drbeat sound - programmatically generated
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.frequency.setValueAtTime(isDownbeat ? 800 : 600, startTime);
-                gainNode.gain.setValueAtTime(isDownbeat ? 0.3 : 0.2, startTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.start(startTime);
-                oscillator.stop(startTime + duration);
-            } else if (currentSound === 'sharp') {
-                // Sharp sound - fairly short, extremely loud and percussive like a marching snare shot
+                // Drbeat sound - fairly short, extremely loud and percussive like a marching snare shot
                 const oscillator1 = audioContext.createOscillator();
                 const oscillator2 = audioContext.createOscillator();
                 const oscillator3 = audioContext.createOscillator();
+                const lowOscillator = audioContext.createOscillator(); // New low-pitched oscillator
                 const noiseBuffer = audioContext.createBuffer(1, 4096, audioContext.sampleRate);
                 const noiseData = noiseBuffer.getChannelData(0);
                 for (let i = 0; i < 4096; i++) {
@@ -1324,22 +1311,28 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
                 noiseSource.buffer = noiseBuffer;
                 
                 const gainNode = audioContext.createGain();
+                const lowGainNode = audioContext.createGain(); // Separate gain for low note
                 const noiseGain = audioContext.createGain();
                 const filterNode = audioContext.createBiquadFilter();
                 const filterNode2 = audioContext.createBiquadFilter();
                 
-                // Sharp, cutting frequencies - higher for downbeat
-                const baseFreq = isDownbeat ? 2400 : 1800;
+                // Higher-pitched frequencies for sharper attack - increased by ~50%
+                const baseFreq = isDownbeat ? 3600 : 2700; // Increased from 2400/1800
+                const lowFreq = isDownbeat ? 80 : 60; // Low-pitched note
                 
-                // Multiple oscillators for thick, sharp attack
+                // Multiple oscillators for thick, sharp attack (higher pitched)
                 oscillator1.frequency.setValueAtTime(baseFreq, startTime);
                 oscillator2.frequency.setValueAtTime(baseFreq * 1.5, startTime);
                 oscillator3.frequency.setValueAtTime(baseFreq * 2.2, startTime);
+                
+                // Low-pitched oscillator for depth
+                lowOscillator.frequency.setValueAtTime(lowFreq, startTime);
                 
                 // Square waves for sharp, cutting character
                 oscillator1.type = 'square';
                 oscillator2.type = 'square';
                 oscillator3.type = 'sawtooth';
+                lowOscillator.type = 'sine'; // Smooth low note
                 
                 // High-pass filter for sharp, cutting tone
                 filterNode.type = 'highpass';
@@ -1356,22 +1349,31 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
                 gainNode.gain.linearRampToValueAtTime(isDownbeat ? 4.5 : 4.0, startTime + 0.0005); // Ultra-fast attack
                 gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.06); // Fairly short decay
                 
+                // Low note envelope - softer attack, longer sustain
+                lowGainNode.gain.setValueAtTime(0, startTime);
+                lowGainNode.gain.linearRampToValueAtTime(isDownbeat ? 0.8 : 0.6, startTime + 0.002); // Slightly slower attack
+                lowGainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.12); // Longer decay for depth
+                
                 // Sharp noise burst for snare crack
                 noiseGain.gain.setValueAtTime(0, startTime);
                 noiseGain.gain.linearRampToValueAtTime(2.0, startTime + 0.0005); // Ultra-fast attack
                 noiseGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.008); // Very short noise burst
                 
-                // Connect oscillators through filters
+                // Connect high-pitched oscillators through filters
                 oscillator1.connect(filterNode);
                 oscillator2.connect(filterNode);
                 oscillator3.connect(filterNode);
                 filterNode.connect(filterNode2);
                 
+                // Connect low oscillator directly (bypass filters for full low end)
+                lowOscillator.connect(lowGainNode);
+                lowGainNode.connect(audioContext.destination);
+                
                 // Connect noise through filters
                 noiseSource.connect(noiseGain);
                 noiseGain.connect(filterNode2);
                 
-                // Final output
+                // Final output for high frequencies
                 filterNode2.connect(gainNode);
                 gainNode.connect(audioContext.destination);
                 
@@ -1379,14 +1381,16 @@ const WebViewMetronome = forwardRef<WebViewMetronomeRef, WebViewMetronomeProps>(
                 oscillator1.start(startTime);
                 oscillator2.start(startTime);
                 oscillator3.start(startTime);
+                lowOscillator.start(startTime);
                 noiseSource.start(startTime);
                 
                 // Stop everything
                 oscillator1.stop(startTime + 0.06);
                 oscillator2.stop(startTime + 0.06);
                 oscillator3.stop(startTime + 0.06);
+                lowOscillator.stop(startTime + 0.12); // Let low note sustain longer
                 noiseSource.stop(startTime + 0.008);
-            } else if (currentSound === 'snap') {
+            } else if (currentSound === 'sharp') {
                 // Snap sound - extremely short, sharp and piercing like a powerful woodblock hit
                 const oscillator1 = audioContext.createOscillator();
                 const oscillator2 = audioContext.createOscillator();

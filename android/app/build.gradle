@@ -92,8 +92,8 @@ android {
         applicationId 'com.theliendem.metmaestro'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 18
-        versionName "4.2"
+        versionCode 21
+        versionName "4.4"
     }
     signingConfigs {
         debug {

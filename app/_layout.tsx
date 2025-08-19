@@ -1,5 +1,6 @@
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -43,9 +44,17 @@ function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  // Initialize audio session when app starts
+  // Initialize audio session and keep screen awake when app starts
   useEffect(() => {
     initializeAudioSession();
+    
+    // Prevent screen from auto-dimming while app is open
+    activateKeepAwakeAsync('Met Maestro App');
+    
+    // Cleanup function to deactivate keep awake when component unmounts
+    return () => {
+      deactivateKeepAwake('Met Maestro App');
+    };
   }, []);
 
   if (!loaded) {

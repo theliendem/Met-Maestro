@@ -35,7 +35,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onClose, currentSoun
     { name: 'Beep', value: 'beep' },
     { name: 'Dr Beat', value: 'drbeat' },
     { name: 'Sharp', value: 'sharp' },
-    { name: 'Snap', value: 'snap' },
   ];
 
   const handleAccentColorSelect = (colorValue: AccentColor) => {
