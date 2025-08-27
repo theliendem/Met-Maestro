@@ -1,28 +1,35 @@
-// Tuner screen UI using WebView
+// Tuner screen UI using React Native components
 import { SettingsModal } from '@/components/SettingsModal';
 import { SettingsPage } from '@/components/SettingsPage';
 import { ThemedView } from '@/components/ThemedView';
-import WebViewTuner from '@/components/WebViewTuner';
+import { TunerDisplay } from '@/components/tuner/TunerDisplay';
+import { useSoundSystem } from '@/contexts/SoundSystemContext';
 import { useAppTheme } from '@/theme/AppTheme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 
-import { useTuner } from '../../hooks/useTuner';
 import { isMicPermissionGranted, requestMicPermission } from '../../utils/audioStream';
 
 // Debug mode - set to true to enable detailed logging
 const DEBUG_MODE = false;
 
 function TunerScreen() {
+  const { soundSystemRef, setCurrentMode } = useSoundSystem();
+  const themeColors = useAppTheme().colors;
+
   const [permission, setPermission] = useState<'unknown' | 'granted' | 'denied'>('unknown');
   const [checking, setChecking] = useState(true);
   const [requestedOnce, setRequestedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isFocused, setIsFocused] = useState(true);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [currentSound, setCurrentSound] = useState('synth');
-  const themeColors = useAppTheme().colors;
+
+  // Tuner state
+  const [note, setNote] = useState<string | null>(null);
+  const [frequency, setFrequency] = useState<number | null>(null);
+  const [cents, setCents] = useState<number | null>(null);
+  const [referencePitch, setReferencePitch] = useState(440);
   
   // Debug logging function
   const debugLog = (message: string, ...args: any[]) => {
@@ -31,42 +38,25 @@ function TunerScreen() {
     }
   };
   
-  // Track focus state and re-check permissions when screen comes into focus
+  // Set mode when component mounts and handle focus/blur
   useFocusEffect(
     React.useCallback(() => {
       debugLog('Tuner screen focused');
-      setIsFocused(true);
-      
-      // Re-check microphone permission when screen comes into focus
-      // This handles cases where user grants permission and returns to app
-      const checkPermissionOnFocus = async () => {
-        debugLog('Checking permission on focus...');
-        if (permission !== 'granted') {
-          try {
-            const granted = await isMicPermissionGranted();
-            debugLog('Permission check on focus result:', granted);
-            setPermission(granted ? 'granted' : 'denied');
-            setError(null);
-          } catch (err) {
-            console.error('Error checking permission on focus:', err);
-            setError('Failed to check microphone permission');
-          }
+      setCurrentMode('tuner');
+
+      // Start tuner if permission is granted
+      if (permission === 'granted' && soundSystemRef.current) {
+        soundSystemRef.current.startTuner(referencePitch);
+      }
+
+      return () => {
+        debugLog('Navigating away from tuner screen - stopping tuner');
+        if (soundSystemRef.current) {
+          soundSystemRef.current.stopTuner();
         }
       };
-      
-      // Add a small delay to ensure the screen is fully focused
-      setTimeout(() => {
-        checkPermissionOnFocus();
-      }, 100);
-      
-      return () => {
-        debugLog('Tuner screen unfocused');
-        setIsFocused(false);
-      };
-    }, [permission])
+    }, [setCurrentMode, soundSystemRef, permission, referencePitch])
   );
-  
-  const tuner = useTuner(isFocused);
 
   // Initial permission check
   useEffect(() => {
@@ -123,19 +113,24 @@ function TunerScreen() {
     try {
       const granted = await requestMicPermission();
       debugLog('Permission request result:', granted);
-      
+
       if (granted) {
         // Add a small delay and re-check to ensure the permission state is properly updated
         debugLog('Permission granted, re-checking...');
         await new Promise(resolve => setTimeout(resolve, 200));
-        
+
         // Re-check the permission to ensure it's actually granted
         const confirmedGranted = await isMicPermissionGranted();
         debugLog('Permission confirmation result:', confirmedGranted);
-        
+
         setPermission(confirmedGranted ? 'granted' : 'denied');
         if (!confirmedGranted) {
           setError('Permission was not properly granted. Please try again.');
+        } else {
+          // Start tuner when permission is granted
+          if (soundSystemRef.current) {
+            soundSystemRef.current.startTuner(referencePitch);
+          }
         }
       } else {
         setPermission('denied');
@@ -146,7 +141,7 @@ function TunerScreen() {
       setError('Failed to request microphone permission. Please try again.');
       setPermission('denied');
     }
-    
+
     setRequestedOnce(true);
     setChecking(false);
   };
@@ -176,11 +171,33 @@ function TunerScreen() {
       await AsyncStorage.setItem('metMaestro_soundType', soundType);
       setCurrentSound(soundType);
       console.log('Saved sound type:', soundType);
+
+      // Update SoundSystem sound dynamically
+      if (soundSystemRef.current) {
+        soundSystemRef.current.updateSound(soundType);
+      }
     } catch (error) {
       console.error('Error saving sound type:', error);
       // Still update the state even if saving fails
       setCurrentSound(soundType);
+
+      // Update SoundSystem sound even if saving failed
+      if (soundSystemRef.current) {
+        soundSystemRef.current.updateSound(soundType);
+      }
     }
+  };
+
+  // Tuner control handlers
+  const handleReferencePitchChange = (newPitch: number) => {
+    setReferencePitch(newPitch);
+    if (permission === 'granted' && soundSystemRef.current) {
+      soundSystemRef.current.updateTunerSettings({ referencePitch: newPitch });
+    }
+  };
+
+  const handleOpenSettings = () => {
+    setSettingsVisible(true);
   };
 
   const refreshPermission = async () => {
@@ -199,27 +216,21 @@ function TunerScreen() {
     setChecking(false);
   };
 
-  // Prepare tuner data for WebView
-  const tunerData = React.useMemo(() => ({
-    note: tuner.note,
-    freq: tuner.freq,
-    cents: tuner.cents,
-    error: tuner.error || error,
-    permission: checking ? 'unknown' : permission,
-  }), [tuner.note, tuner.freq, tuner.cents, tuner.error, error, checking, permission]);
-
   return (
     <ThemedView style={{ flex: 1 }}>
-      <WebViewTuner 
-        themeColors={themeColors} 
-        tunerData={tunerData}
+      <TunerDisplay
+        note={note}
+        frequency={frequency}
+        cents={cents}
+        referencePitch={referencePitch}
+        permissionStatus={checking ? 'unknown' : permission}
         onRequestPermission={handleRequestPermission}
-        onOpenSettings={openSettings}
-        onRefreshPermission={refreshPermission}
+        onReferencePitchChange={handleReferencePitchChange}
+        onOpenSettings={handleOpenSettings}
       />
       <SettingsModal visible={settingsVisible} onClose={closeSettings}>
-        <SettingsPage 
-          onClose={closeSettings} 
+        <SettingsPage
+          onClose={closeSettings}
           currentSound={currentSound}
           onSoundChange={handleSoundChange}
         />

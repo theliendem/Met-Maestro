@@ -11,6 +11,7 @@ import { Colors } from '@/constants/Colors';
 import { ThemeProvider as AppThemeProvider } from '@/theme/ThemeContext';
 import { MD3DarkTheme, MD3LightTheme, PaperProvider, Portal } from 'react-native-paper';
 import { PermissionInitializer } from '../components/PermissionInitializer';
+import { SoundSystemProvider } from '../contexts/SoundSystemContext';
 import { initializeAudioSession } from '../utils/audioSession';
 
 const paperLightTheme = {
@@ -63,23 +64,25 @@ function RootLayout() {
   }
 
   return (
-    <AppThemeProvider>
-      <ThemeProvider value={DarkTheme}>
-        <PaperProvider theme={paperDarkTheme}>
-          <Portal.Host>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <PermissionInitializer>
-                <Stack>
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="+not-found" />
-                </Stack>
-                <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-              </PermissionInitializer>
-            </GestureHandlerRootView>
-          </Portal.Host>
-        </PaperProvider>
-      </ThemeProvider>
-    </AppThemeProvider>
+    <SoundSystemProvider>
+      <AppThemeProvider>
+        <ThemeProvider value={DarkTheme}>
+          <PaperProvider theme={paperDarkTheme}>
+            <Portal.Host>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <PermissionInitializer>
+                  <Stack>
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="+not-found" />
+                  </Stack>
+                  <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+                </PermissionInitializer>
+              </GestureHandlerRootView>
+            </Portal.Host>
+          </PaperProvider>
+        </ThemeProvider>
+      </AppThemeProvider>
+    </SoundSystemProvider>
   );
 }
 

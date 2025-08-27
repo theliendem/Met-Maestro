@@ -1,13 +1,17 @@
-import { PlaybackOptionsPage } from '@/components/PlaybackOptionsPage';
 import { SettingsModal } from '@/components/SettingsModal';
 import { SettingsPage } from '@/components/SettingsPage';
 import { ThemedView } from '@/components/ThemedView';
-import WebViewShow, { WebViewShowRef } from '@/components/WebViewShow';
+import { PlaybackControls } from '@/components/show/PlaybackControls';
+import { PlaybackOptionsModal } from '@/components/show/PlaybackOptionsModal';
+import { ShowSelector } from '@/components/show/ShowSelector';
+import { ShowVisualizer } from '@/components/show/ShowVisualizer';
+import { useSoundSystem } from '@/contexts/SoundSystemContext';
 import { useAppTheme } from '@/theme/AppTheme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
 
 // Show data structure
@@ -28,14 +32,29 @@ interface Show {
 }
 
 export default function ShowModeScreen() {
+  const { soundSystemRef, setCurrentMode } = useSoundSystem();
+  const themeColors = useAppTheme().colors;
+  const theme = useAppTheme();
+
   const [shows, setShows] = useState<Show[]>([]);
   const [selectedShow, setSelectedShow] = useState<string>('');
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [playbackOptionsVisible, setPlaybackOptionsVisible] = useState(false);
   const [currentSound, setCurrentSound] = useState('synth');
-  const themeColors = useAppTheme().colors;
-  const theme = useAppTheme();
-  const webViewRef = useRef<WebViewShowRef>(null);
+
+  // Show playback state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentMeasure, setCurrentMeasure] = useState(1);
+
+  // Playback options state
+  const [playbackOptions, setPlaybackOptions] = useState({
+    startType: 'beginning' as 'beginning' | 'current' | 'specific',
+    startMeasure: '1',
+    startLetter: '',
+    endType: 'end' as 'end' | 'specific',
+    endMeasure: '1',
+    endLetter: '',
+  });
 
   // Load shows from storage on component mount
   useEffect(() => {
@@ -43,10 +62,22 @@ export default function ShowModeScreen() {
     loadSoundType();
   }, []);
 
-  // Monitor playback options modal state
-  useEffect(() => {
-    console.log('playbackOptionsVisible changed to:', playbackOptionsVisible);
-  }, [playbackOptionsVisible]);
+  // Set mode when component mounts and handle focus/blur
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('Show screen focused');
+      setCurrentMode('show');
+
+      return () => {
+        console.log('Navigating away from show screen - stopping playback');
+        if (soundSystemRef.current && isPlaying) {
+          soundSystemRef.current.stopShowPlayback();
+          setIsPlaying(false);
+          setCurrentMeasure(1);
+        }
+      };
+    }, [setCurrentMode, soundSystemRef, isPlaying])
+  );
 
   const loadShows = async () => {
     try {
@@ -131,10 +162,7 @@ export default function ShowModeScreen() {
     console.log('Added new show:', newShow);
   };
 
-  const handleSelectShow = (showId: string) => {
-    setSelectedShow(showId);
-    console.log('Selected show:', showId);
-  };
+
 
   const handleRenameShow = async (showId: string, newName: string) => {
     console.log('handleRenameShow called with:', showId, newName);
@@ -363,45 +391,96 @@ export default function ShowModeScreen() {
       await AsyncStorage.setItem('metMaestro_soundType', soundType);
       setCurrentSound(soundType);
       console.log('Saved sound type:', soundType);
+
+      // Update SoundSystem sound dynamically
+      if (soundSystemRef.current) {
+        soundSystemRef.current.updateSound(soundType);
+      }
     } catch (error) {
       console.error('Error saving sound type:', error);
       // Still update the state even if saving fails
       setCurrentSound(soundType);
+
+      // Update SoundSystem sound even if saving failed
+      if (soundSystemRef.current) {
+        soundSystemRef.current.updateSound(soundType);
+      }
     }
   };
 
+  // Show control handlers
+  const handleSelectShow = (showId: string) => {
+    setSelectedShow(showId);
+    const show = shows.find(s => s.id === showId);
+    if (show && soundSystemRef.current) {
+      soundSystemRef.current.loadShow(show);
+    }
+  };
+
+  const handlePlayPause = () => {
+    if (isPlaying) {
+      // Stop playback
+      soundSystemRef.current?.stopShowPlayback();
+      setIsPlaying(false);
+      setCurrentMeasure(1);
+    } else {
+      // Start playback
+      const show = shows.find(s => s.id === selectedShow);
+      if (show && soundSystemRef.current) {
+        soundSystemRef.current.startShowPlayback(show, playbackOptions);
+        setIsPlaying(true);
+      }
+    }
+  };
+
+
+
+  const selectedShowData = selectedShow ? shows.find(s => s.id === selectedShow) : null;
+
   return (
     <ThemedView style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <WebViewShow 
-        themeColors={{...themeColors, fontSize: theme.typography.fontSize}} 
+      {/* Show Selector */}
+      <ShowSelector
         shows={shows}
-        selectedShow={selectedShow}
-        onAddShow={handleAddShow}
+        selectedShowId={selectedShow}
         onSelectShow={handleSelectShow}
+        onAddShow={handleAddShow}
         onRenameShow={handleRenameShow}
-        onUpdateShowMeasures={handleUpdateShowMeasures}
         onDeleteShow={handleDeleteShow}
-        onOpenSettings={openSettings}
-        soundType={currentSound}
-        onSoundChange={handleSoundChange}
-        onMessage={handleMessage}
-        ref={webViewRef}
       />
+
+      {/* Show Visualizer */}
+      <ShowVisualizer
+        show={selectedShowData}
+        currentMeasure={currentMeasure}
+      />
+
+      {/* Playback Controls */}
+      <PlaybackControls
+        isPlaying={isPlaying}
+        currentMeasure={currentMeasure}
+        totalMeasures={selectedShowData?.measures.length || 0}
+        onPlayPause={handlePlayPause}
+        onPrevious={currentMeasure > 1 ? () => setCurrentMeasure(currentMeasure - 1) : undefined}
+        onNext={selectedShowData && currentMeasure < selectedShowData.measures.length ? () => setCurrentMeasure(currentMeasure + 1) : undefined}
+        onRestart={() => setCurrentMeasure(1)}
+        showPlaybackOptions={() => setPlaybackOptionsVisible(true)}
+      />
+
+      {/* Playback Options Modal */}
+      <PlaybackOptionsModal
+        visible={playbackOptionsVisible}
+        options={playbackOptions}
+        onChange={handlePlaybackOptionsChange}
+        onClose={() => setPlaybackOptionsVisible(false)}
+        totalMeasures={selectedShowData?.measures.length || 0}
+      />
+
       <SettingsModal visible={settingsVisible} onClose={closeSettings}>
-        <SettingsPage 
-          onClose={closeSettings} 
+        <SettingsPage
+          onClose={closeSettings}
           currentSound={currentSound}
           onSoundChange={handleSoundChange}
-        />
-      </SettingsModal>
-      <SettingsModal visible={playbackOptionsVisible} onClose={closePlaybackOptions}>
-        <PlaybackOptionsPage
-          onClose={closePlaybackOptions}
-          currentSound={currentSound}
-          onSoundChange={handleSoundChange}
-          totalMeasures={shows.find(s => s.id === selectedShow)?.measures?.length || 1}
-          currentShow={shows.find(s => s.id === selectedShow)}
-          onPlaybackOptionsChange={handlePlaybackOptionsChange}
         />
       </SettingsModal>
     </ThemedView>

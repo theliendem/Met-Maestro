@@ -163,6 +163,105 @@
 - Enhanced tap BPM and modal designs
 - Theme integration and performance optimization
 
+# **Phase 6: Single SoundSystem WebView Architecture** 🔄
+
+## **Overview**
+Refactor from multiple WebView architecture to single SoundSystem WebView with React Native UI components. This consolidates all sound logic into one invisible WebView while maintaining three separate tab screens with native React Native UI components.
+
+## **Architecture Summary**
+```
+┌─────────────────┐    ┌──────────────────┐
+│   Metronome     │    │                  │
+│   Tab Screen    │    │   SoundSystem    │
+│   (React Native │────│   WebView        │
+│   UI)           │    │   (Invisible)    │
+└─────────────────┘    │                  │
+                       │  • Metronome     │
+┌─────────────────┐    │  • Show          │
+│   Show Tab      │    │  • Tuner         │
+│   Screen        │    │                  │
+│   (React Native │────│   Sound Logic    │
+│   UI)           │    │                  │
+└─────────────────┘    └──────────────────┘
+                       │                  │
+┌─────────────────┐    │   Message        │
+│   Tuner Tab     │    │   Bridge         │
+│   Screen        │    │                  │
+│   (React Native │────│   Events         │
+│   UI)           │    │                  │
+└─────────────────┘    └──────────────────┘
+```
+
+**Key Benefits:**
+- **Three separate, focused screens** - each with its own specialized UI
+- **One powerful sound system** - handling all audio logic invisibly
+- **Clean communication** - each screen talks to the shared sound system
+- **Better performance** - native UI components instead of WebView rendering
+
+## **Objectives**
+- **Single SoundSystem WebView**: Consolidate all sound logic from WebViewMetronome, WebViewShow, and WebViewTuner into one invisible WebView
+- **Three Separate React Native UI Screens**: Maintain three distinct tab screens (Metronome, Show, Tuner) each with their own React Native UI components
+- **Unified Message Passing**: Create consistent communication protocol between all UI screens and the single sound system
+- **Maintained Functionality**: Ensure all existing features work identically with new architecture
+- **Seamless Mode Switching**: Switch between modes without audio interruption, with proper state management
+
+## **Implementation Plan**
+
+### **Step 6.1: Foundation - SoundSystem Component** ✅
+- ✅ Create `SoundSystem.tsx` component - invisible WebView combining all sound logic
+- Extract HTML content from WebViewMetronome, WebViewShow, and WebViewTuner
+- Create consolidated HTML template with all audio/sound logic (no UI elements)
+- ✅ Implement unified message protocol for communication
+- ✅ Create SoundSystem Context/Provider for app-wide access
+
+### **Step 6.2: React Native UI Components** ✅
+- ✅ **Shared Components**: TimeSignatureSelector, BpmControls, PlayButton, TempoBar, SettingsButton
+- ✅ **Metronome UI**: SubdivisionControls, SoundControls, MetronomeControls
+- ✅ **Show UI**: ShowSelector, PlaybackControls, ShowVisualizer, PlaybackOptionsModal
+- ✅ **Tuner UI**: TunerDisplay, TunerNeedle, NoteDisplay, ReferencePitchControl, PermissionPrompt
+
+### **Step 6.3: Screen Refactoring** ✅
+
+### **Step 6.4: State Management & Communication** ✅
+- ✅ Implement cross-mode state management with useSoundSystem hook (via SoundSystemContext)
+- ✅ Create SoundSystemBridge for reliable message passing (basic messaging implemented)
+- ✅ Implement event system for real-time communication (beats, measure completion, tuner data)
+- ✅ Add proper error handling and timeout management (via event system)
+
+### **Step 6.5: Lifecycle & Performance** 🔄
+- ✅ Update app root layout with SoundSystemProvider
+- Update audio session management for single WebView
+- Implement proper focus/blur handling for mode switching
+- Update performance monitoring for new architecture
+
+### **Step 6.6: Testing & Validation**
+- Update testing infrastructure for new component structure
+- Create integration tests for SoundSystem communication
+- Validate all functionality works with React Native UI
+- Performance benchmarking with new architecture
+
+## **Success Criteria**
+- ✅ All sound functionality works identically to current version
+- ✅ Three separate tab screens maintained with independent React Native UIs
+- ✅ All UI interactions work smoothly with React Native components
+- ✅ Seamless switching between modes without audio interruption
+- ✅ Single SoundSystem WebView handles all audio for all three modes
+- ✅ Theme system works across all components and screens
+- ✅ Settings persistence maintained
+- ✅ <10ms timing accuracy maintained for metronome
+- ✅ <150ms tuner latency maintained
+- ✅ Memory usage optimized for single WebView
+- ✅ Battery optimization improved
+- ✅ Smooth UI interactions with 60fps
+- ✅ Each screen can independently control the shared sound system
+
+## **Migration Benefits**
+- **Better Performance**: Native UI components render faster than WebView
+- **Easier Maintenance**: Separation of UI and sound logic
+- **Reduced Complexity**: Single WebView instead of three separate ones
+- **Better Debugging**: Native components are easier to debug and test
+- **Future-Proof**: Easier to extend and modify individual components
+
 ---
 
 # **Potential future ideas**
@@ -182,6 +281,7 @@
 13. Add a swipe gesture where you can swipe left or right to the next/previous tab, with an animation.
 14. Music scanning feature: Allow users to scan their sheet music using the device camera, and the app automatically translates the time signatures, tempo markings, and measure structure into a show. This would use OCR (Optical Character Recognition) to detect musical notation and convert it into the app's show format.
 15. Add a "piano" section to tuner to allow for tuning to a note.
+16. Add a new type of measure- a "transition" measure where it slowly changes tempo until it reaches the next tempo, instead of instantly jumping tempo
 
 ---
 
